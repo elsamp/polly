@@ -1,0 +1,10 @@
+[project]
+name = "feature-breakdown-agent"
+version = "0.1.0"
+description = "A terminal-based AI agent that transforms high-level feature descriptions into detailed, incremental coding prompts"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+feature-breakdown-agent = "feature_breakdown_agent.feature_breakdown_agent:main"
