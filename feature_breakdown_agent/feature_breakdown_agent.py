@@ -86,19 +86,29 @@ async def run_phase_0():
 
                 # Collect response text to check for completion
                 response_text = ""
-                print("\nAgent: ", end="", flush=True)
+                agent_speaking = False
 
                 async for message in client.receive_response():
                     msg_type = getattr(message, 'type', None)
+
                     if msg_type == "assistant":
                         for block in message.content:
                             if block.type == "text":
+                                if not agent_speaking:
+                                    print("\nAgent: ", end="", flush=True)
+                                    agent_speaking = True
                                 print(block.text, end="", flush=True)
                                 response_text += block.text
                             elif block.type == "tool_use":
-                                print(f"\n[🔧 Using {block.tool_name}...]", end="", flush=True)
+                                print(f"\n\n[🔧 Using {block.tool_name}...]", flush=True)
+
+                    elif msg_type == "tool_result":
+                        # Tool completed - show indicator
+                        print("[✓ Complete]", flush=True)
+
                     elif msg_type == "result":
-                        print("\n")
+                        if agent_speaking:
+                            print("\n")
                         break
 
                 # Check if phase is complete
