@@ -5,8 +5,9 @@ A terminal-based AI agent that transforms high-level feature descriptions
 into detailed, incremental coding prompts.
 """
 
+import sys
 import anyio
-from claude_agent_sdk import ClaudeSDKClient, ClaudeAgentOptions
+from claude_agent_sdk import query, ClaudeAgentOptions
 
 
 PHASE_0_SYSTEM_PROMPT = """You are a Product Requirements specialist helping to break down features into implementable increments.
@@ -59,72 +60,71 @@ async def run_phase_0():
         permission_mode="acceptEdits",  # Auto-accept file reads
     )
 
-    # Create client and start conversation
-    async with ClaudeSDKClient(options=options) as client:
-        # Initial agent greeting
-        print("Agent: Hello! Let's start by understanding your existing codebase.")
-        print("       Where is your feature documentation located?")
-        print("       (Press Enter for default: './features/')")
+    # Initial agent greeting
+    print("Agent: Hello! Let's start by understanding your existing codebase.")
+    print("       Where is your feature documentation located?")
+    print("       (Press Enter for default: './features/')")
 
-        # Note: We start with the conversation loop directly
-        # instead of sending an initial query
+    # Conversation loop using simple query() function
+    conversation_history = []
 
-        # Conversation loop
-        while True:
-            try:
-                user_input = input("\nYou: ").strip()
+    while True:
+        try:
+            user_input = input("\nYou: ").strip()
 
-                if not user_input:
-                    continue
+            if not user_input:
+                # Use default
+                user_input = "./features/"
 
-                if user_input.lower() in ['exit', 'quit']:
-                    print("\nExiting Feature Breakdown Agent. Goodbye!")
-                    break
+            if user_input.lower() in ['exit', 'quit']:
+                print("\nExiting Feature Breakdown Agent. Goodbye!")
+                break
 
-                # Send user message
-                await client.query(user_input)
+            # Build conversation context
+            if not conversation_history:
+                # First message - add context about what we're doing
+                prompt = f"""The user wants to break down a new feature. First, let's gather context about their existing features.
 
-                # Collect response text to check for completion
-                response_text = ""
-                agent_speaking = False
+The user says their feature documentation is located at: {user_input}
 
-                async for message in client.receive_response():
-                    msg_type = getattr(message, 'type', None)
+Please:
+1. Use the Glob tool to search for *.md files in that directory
+2. Read the feature documentation files you find
+3. Summarize what existing features they have
+4. Ask if they're ready to proceed to Phase 1 (Discovery) for their new feature"""
+            else:
+                prompt = user_input
 
-                    if msg_type == "assistant":
-                        for block in message.content:
-                            if block.type == "text":
-                                if not agent_speaking:
-                                    print("\nAgent: ", end="", flush=True)
-                                    agent_speaking = True
-                                print(block.text, end="", flush=True)
-                                response_text += block.text
-                            elif block.type == "tool_use":
-                                print(f"\n\n[🔧 Using {block.tool_name}...]", flush=True)
+            print("\nAgent: ", end="", flush=True)
 
-                    elif msg_type == "tool_result":
-                        # Tool completed - show indicator
-                        print("[✓ Complete]", flush=True)
+            response_text = ""
+            # Use the simple query() function
+            async for message in query(prompt=prompt, options=options):
+                # The query() function yields text strings directly
+                if isinstance(message, str):
+                    print(message, end="", flush=True)
+                    response_text += message
 
-                    elif msg_type == "result":
-                        if agent_speaking:
-                            print("\n")
-                        break
+            print("\n")
 
-                # Check if phase is complete
-                if "PHASE_0_COMPLETE" in response_text:
-                    print("\n" + "=" * 70)
-                    print("Phase 0 Complete!")
-                    print("=" * 70)
-                    print("\n(Phase 1 will be implemented next)")
-                    break
+            # Check if phase is complete
+            if "PHASE_0_COMPLETE" in response_text or "phase 1" in response_text.lower():
+                print("\n" + "=" * 70)
+                print("Phase 0 Complete!")
+                print("=" * 70)
+                print("\n(Phase 1 will be implemented next)")
+                break
 
-            except KeyboardInterrupt:
-                print("\n\nInterrupted. Type 'exit' to quit.")
-                continue
-            except Exception as e:
-                print(f"\n\nError: {e}")
-                print("Please try again or type 'exit' to quit.")
+            conversation_history.append({"user": user_input, "assistant": response_text})
+
+        except KeyboardInterrupt:
+            print("\n\nInterrupted. Type 'exit' to quit.")
+            continue
+        except Exception as e:
+            print(f"\n\nError: {e}")
+            import traceback
+            traceback.print_exc()
+            print("Please try again or type 'exit' to quit.")
 
 
 def main():
