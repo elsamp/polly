@@ -7,7 +7,7 @@ into detailed, incremental coding prompts.
 
 import sys
 import anyio
-from claude_agent_sdk import query, ClaudeAgentOptions
+from claude_agent_sdk import ClaudeSDKClient, ClaudeAgentOptions
 
 
 PHASE_0_SYSTEM_PROMPT = """You are a Product Requirements specialist helping to break down features into implementable increments.
@@ -60,30 +60,31 @@ async def run_phase_0():
         permission_mode="acceptEdits",  # Auto-accept file reads
     )
 
-    # Initial agent greeting
-    print("Agent: Hello! Let's start by understanding your existing codebase.")
-    print("       Where is your feature documentation located?")
-    print("       (Press Enter for default: './features/')")
+    # Use ClaudeSDKClient for stateful conversation
+    async with ClaudeSDKClient(options=options) as client:
+        # Initial agent greeting
+        print("Agent: Hello! Let's start by understanding your existing codebase.")
+        print("       Where is your feature documentation located?")
+        print("       (Press Enter for default: './features/')")
 
-    # Conversation loop using simple query() function
-    conversation_history = []
+        first_message = True
 
-    while True:
-        try:
-            user_input = input("\nYou: ").strip()
+        while True:
+            try:
+                user_input = input("\nYou: ").strip()
 
-            if not user_input:
-                # Use default
-                user_input = "./features/"
+                if not user_input:
+                    # Use default
+                    user_input = "./features/"
 
-            if user_input.lower() in ['exit', 'quit']:
-                print("\nExiting Feature Breakdown Agent. Goodbye!")
-                break
+                if user_input.lower() in ['exit', 'quit']:
+                    print("\nExiting Feature Breakdown Agent. Goodbye!")
+                    break
 
-            # Build conversation context
-            if not conversation_history:
-                # First message - add context about what we're doing
-                prompt = f"""The user wants to break down a new feature. First, let's gather context about their existing features.
+                # Build conversation context for first message
+                if first_message:
+                    # First message - add context about what we're doing
+                    prompt = f"""The user wants to break down a new feature. First, let's gather context about their existing features.
 
 The user says their feature documentation is located at: {user_input}
 
@@ -92,39 +93,52 @@ Please:
 2. Read the feature documentation files you find
 3. Summarize what existing features they have
 4. Ask if they're ready to proceed to Phase 1 (Discovery) for their new feature"""
-            else:
-                prompt = user_input
+                    first_message = False
+                else:
+                    prompt = user_input
 
-            print("\nAgent: ", end="", flush=True)
+                # Send query to agent
+                await client.query(prompt)
 
-            response_text = ""
-            # Use the simple query() function
-            async for message in query(prompt=prompt, options=options):
-                # The query() function yields text strings directly
-                if isinstance(message, str):
-                    print(message, end="", flush=True)
-                    response_text += message
+                print("\nAgent: ", end="", flush=True)
 
-            print("\n")
+                response_text = ""
+                # Stream response from agent
+                async for message in client.receive_response():
+                    # Check message type using class name
+                    message_class = type(message).__name__
 
-            # Check if phase is complete
-            if "PHASE_0_COMPLETE" in response_text or "phase 1" in response_text.lower():
-                print("\n" + "=" * 70)
-                print("Phase 0 Complete!")
-                print("=" * 70)
-                print("\n(Phase 1 will be implemented next)")
-                break
+                    if message_class == "AssistantMessage":
+                        if hasattr(message, 'content'):
+                            for block in message.content:
+                                block_type = type(block).__name__
+                                if block_type == "TextBlock":
+                                    print(block.text, end="", flush=True)
+                                    response_text += block.text
+                                elif block_type == "ToolUseBlock":
+                                    tool_name = getattr(block, 'name', 'unknown')
+                                    print(f"\n[Using {tool_name}...]", end="", flush=True)
+                    elif message_class == "ResultMessage":
+                        break
 
-            conversation_history.append({"user": user_input, "assistant": response_text})
+                print("\n")
 
-        except KeyboardInterrupt:
-            print("\n\nInterrupted. Type 'exit' to quit.")
-            continue
-        except Exception as e:
-            print(f"\n\nError: {e}")
-            import traceback
-            traceback.print_exc()
-            print("Please try again or type 'exit' to quit.")
+                # Check if phase is complete
+                if "PHASE_0_COMPLETE" in response_text or "phase 1" in response_text.lower():
+                    print("\n" + "=" * 70)
+                    print("Phase 0 Complete!")
+                    print("=" * 70)
+                    print("\n(Phase 1 will be implemented next)")
+                    break
+
+            except KeyboardInterrupt:
+                print("\n\nInterrupted. Type 'exit' to quit.")
+                continue
+            except Exception as e:
+                print(f"\n\nError: {e}")
+                import traceback
+                traceback.print_exc()
+                print("Please try again or type 'exit' to quit.")
 
 
 def main():
