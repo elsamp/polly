@@ -50,10 +50,11 @@ You are currently in **Phase 1: Discovery**.
    - What are the technical constraints?
    - What dependencies exist (on existing features or external systems)?
    - What's the expected behavior?
-3. Ask intelligent follow-up questions based on their responses
-4. Reference existing features (from Phase 0) when asking about integration points
-5. When you have a complete understanding, write a feature summary document
-6. Signal completion to move to Phase 2 (Incremental Grouping)
+3. **Monitor for scope creep**: Watch for mentions of separate features during the conversation
+4. Ask intelligent follow-up questions based on their responses
+5. Reference existing features (from Phase 0) when asking about integration points
+6. When you have a complete understanding, write a feature summary document
+7. Signal completion to move to Phase 2 (Incremental Grouping)
 
 ## Guidelines
 - Be conversational and engaging
@@ -62,6 +63,41 @@ You are currently in **Phase 1: Discovery**.
 - Show that you're listening by referencing earlier responses
 - Don't just check boxes - dig deeper when answers are vague
 - Count your questions to ensure you ask at least 5 substantive ones
+
+## Handling Scope Creep and Future Features
+During discovery, the user may mention functionality that sounds like a **separate feature** rather than part of the current feature. When this happens:
+
+1. **Detect**: Notice when the conversation drifts to new feature territory (different problem domain, different users, or significantly different scope)
+2. **Confirm**: Ask the user directly: "This sounds like a separate feature. Should I capture this as '[Feature Name]' for future planning?"
+3. **If user confirms it's a separate feature**:
+   - Ask where to save future features (default: `{future_features_directory}`)
+   - Create a minimal placeholder document using the Write tool
+   - Save as: `{future_features_directory}/{feature_name_slug}.md`
+   - Use this template:
+
+```markdown
+# Future Feature: [Feature Name]
+
+**Status**: Placeholder for future planning
+
+## Brief Description
+[1-2 sentence description based on what was mentioned]
+
+## Mentioned In Context
+This feature was mentioned during the discovery phase for: **[Current Feature Name]**
+
+**Date Captured**: [Current date/time]
+
+## Initial Notes
+[Any additional context from the conversation]
+
+---
+*This is a placeholder document created by the Feature Breakdown Agent.*
+*Run the agent again with this feature name when you're ready to develop it.*
+```
+
+4. **Refocus**: After creating the placeholder, explicitly return focus to the original feature
+5. **Reference when relevant**: If captured features become dependencies, mention them in the main feature summary
 
 ## Writing the Feature Summary
 When you have sufficient understanding:
@@ -74,7 +110,7 @@ When you have sufficient understanding:
    - Target Users
    - Key Functionality
    - Technical Constraints
-   - Dependencies
+   - Dependencies (include captured future features if relevant)
    - Expected Behavior
    - Open Questions (if any)
 
@@ -84,6 +120,8 @@ After writing the feature summary file, inform the user and respond with "PHASE_
 ## Important
 - You have access to existing feature context from Phase 0
 - Reference specific existing features when relevant
+- Watch for scope creep and capture future features proactively
+- Keep the main feature focused and well-defined
 - Minimum 5 clarifying questions before writing summary
 - Only write the summary when understanding is complete"""
 
@@ -203,23 +241,33 @@ Please:
                 print("Please try again or type 'exit' to quit.")
 
 
-async def run_phase_1(features_directory: str, existing_features_context: str) -> bool:
+async def run_phase_1(features_directory: str, existing_features_context: str, future_features_directory: str = "./future-features/") -> tuple[bool, list[str]]:
     """Run Phase 1: Discovery.
 
     Args:
         features_directory: Path to features directory from Phase 0
         existing_features_context: Summary of existing features from Phase 0
+        future_features_directory: Path to save future feature placeholders
 
     Returns:
-        bool: True if phase completed successfully, False if user exited
+        tuple: (success: bool, captured_future_features: list[str])
+            - success: True if phase completed successfully, False if user exited
+            - captured_future_features: List of future feature file paths created
     """
     print("=" * 70)
     print("Starting Phase 1: Discovery...")
     print("=" * 70 + "\n")
 
+    # Track captured future features during this phase
+    captured_future_features = []
+
     # Configure agent options for Phase 1
+    # Inject directory paths into the system prompt
+    phase_1_prompt = PHASE_1_SYSTEM_PROMPT.replace("{features_directory}", features_directory)
+    phase_1_prompt = phase_1_prompt.replace("{future_features_directory}", future_features_directory)
+
     options = ClaudeAgentOptions(
-        system_prompt=PHASE_1_SYSTEM_PROMPT,
+        system_prompt=phase_1_prompt,
         allowed_tools=["Read", "Glob", "Grep", "Write"],
         permission_mode="acceptEdits",  # Auto-accept file operations
     )
@@ -233,6 +281,7 @@ Here's what we learned about existing features:
 {existing_features_context}
 
 The features are located in: {features_directory}
+Future features will be saved to: {future_features_directory}
 
 Now let's start Phase 1 (Discovery). Please ask the user to describe the new feature they want to build, then ask clarifying questions to understand it deeply."""
 
@@ -269,7 +318,7 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
 
                 if user_input.lower() in ['exit', 'quit']:
                     print("\nExiting Feature Breakdown Agent. Goodbye!")
-                    return False
+                    return False, []
 
                 # Send user input to agent
                 await client.query(user_input)
@@ -291,6 +340,15 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
                                 elif block_type == "ToolUseBlock":
                                     tool_name = getattr(block, 'name', 'unknown')
                                     print(f"\n[Using {tool_name}...]", end="", flush=True)
+
+                                    # Track future feature file writes
+                                    if tool_name == "Write":
+                                        # Check if this is a future feature file
+                                        if hasattr(block, 'input') and 'file_path' in block.input:
+                                            file_path = block.input['file_path']
+                                            if future_features_directory in file_path:
+                                                captured_future_features.append(file_path)
+                                                print(f" (Future feature captured)", end="", flush=True)
                     elif message_class == "ResultMessage":
                         break
 
@@ -300,8 +358,10 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
                 if "PHASE_1_COMPLETE" in response_text:
                     print("\n" + "=" * 70)
                     print("Phase 1 Complete!")
+                    if captured_future_features:
+                        print(f"Captured {len(captured_future_features)} future feature(s) for later planning")
                     print("=" * 70 + "\n")
-                    return True
+                    return True, captured_future_features
 
             except KeyboardInterrupt:
                 print("\n\nInterrupted. Type 'exit' to quit.")
@@ -322,12 +382,22 @@ async def run_all_phases():
         return  # User exited
 
     # Phase 1: Discovery
-    phase_1_success = await run_phase_1(features_directory, existing_features_context)
+    phase_1_success, captured_future_features = await run_phase_1(features_directory, existing_features_context)
 
     if not phase_1_success:
         return  # User exited
 
+    # Display captured future features if any
+    if captured_future_features:
+        print("\n" + "=" * 70)
+        print("Future Features Captured:")
+        print("=" * 70)
+        for feature_path in captured_future_features:
+            print(f"  - {feature_path}")
+        print("=" * 70 + "\n")
+
     # TODO: Phase 2 and 3 to be implemented
+    # When implementing Phase 2/3, pass captured_future_features to reference as dependencies
     print("\n(Phases 2 and 3 will be implemented next)")
 
 

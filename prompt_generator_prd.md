@@ -29,27 +29,32 @@ Eliminates the tedious manual work of breaking features into implementable incre
 - Provide feature documentation directory location if needed
 - Confirm understanding of existing features
 
-### Phase 1: Discovery
+### Phase 1: Discovery (Enhanced)
 **Agent Actions:**
-1. Ask clarifying questions about the feature:
-   - What problem does it solve?
-   - Who are the users?
-   - What are the technical constraints?
-   - What dependencies exist?
-   - What's the expected behavior?
-2. Ask intelligent follow-up questions based on responses
-3. Reference existing features when asking about integration points
-4. Continue until complete understanding is achieved
+1. Ask clarifying questions about the feature
+2. **[NEW]** Monitor for scope creep or separate feature mentions
+3. **[NEW]** When detected, confirm with user if it's a separate feature
+4. **[NEW]** If confirmed:
+   - Ask where to save future features (default: `./future-features/`)
+   - Create placeholder document using template
+   - Confirm capture and refocus on original feature
+5. Ask intelligent follow-up questions based on responses
+6. Reference existing features when asking about integration points
+7. **[NEW]** Reference captured future features if they become dependencies
+8. Continue until complete understanding is achieved
 
 **User Actions:**
 - Answer questions about the feature
+- **[NEW]** Confirm when mentioned functionality is a separate feature
+- **[NEW]** Optionally provide additional context for captured features
 - Provide additional context when asked
 - Confirm when discovery feels complete
 
 **Exit Criteria:**
 - Agent has clear understanding of feature scope
+- **[NEW]** Out-of-scope functionality captured in separate documents
 - Technical constraints are identified
-- Dependencies are documented
+- Dependencies are documented (including future features)
 - User confirms readiness to proceed
 
 ### Phase 2: Incremental Grouping
@@ -114,6 +119,11 @@ Eliminates the tedious manual work of breaking features into implementable incre
 - **FR-2.3**: Agent must explicitly signal when discovery phase is complete
 - **FR-2.4**: Agent must allow user to provide additional context at any point
 - **FR-2.5**: Agent must maintain conversation history throughout session
+- **FR-2.6**: Agent must detect when discussion veers into separate feature territory
+  - FR-2.6.1: Agent must ask user: "This sounds like a separate feature. Should I capture this as '[Feature Name]' for future planning?"
+  - FR-2.6.2: If user confirms, agent must create a placeholder feature document
+  - FR-2.6.3: Agent must return focus to original feature after capturing
+  - FR-2.6.4: Agent must reference captured features when they relate to current feature's dependencies
 
 ### FR-3: Increment Grouping
 - **FR-3.1**: Agent must create 2-8 increments per feature (reasonable scope)
@@ -209,14 +219,14 @@ user-project/
 ├── .claude/
 │   └── CLAUDE.md                     # User's project context (optional)
 └── [other project files]
-
+```
 ---
 
 ## Prompt Template Specification
 
 Each generated prompt must follow this structure:
 
-```markdown
+```
 # Feature: [Feature Name]
 # Increment N: [Increment Name]
 
@@ -284,6 +294,7 @@ As a [user type], I want to [action] so that [benefit].
 **Date**: [Timestamp]
 **Feature**: [Feature name]
 **Increment**: N of M
+
 ```
 
 ---
@@ -308,6 +319,8 @@ The agent's system prompt must include:
 - Agent responses should feel natural, not robotic
 - Agent should briefly acknowledge user input before proceeding
 - Agent should summarize understanding before transitions
+- Agent should detect when discussion veers into a new feature
+- Agent should create new feature stub for any discovered off topic feature (with user permission)
 - Agent should ask permission before major transitions
 
 ### UX-2: Visual Clarity
