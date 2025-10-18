@@ -8,6 +8,19 @@ into detailed, incremental coding prompts.
 import sys
 import anyio
 from claude_agent_sdk import ClaudeSDKClient, ClaudeAgentOptions
+from .display import (
+    print_welcome,
+    print_phase_header,
+    print_phase_complete,
+    print_agent_message,
+    print_agent_message_streaming,
+    print_tool_usage,
+    print_error,
+    print_info,
+    print_captured_features,
+    UserInput,
+    console,
+)
 
 
 PHASE_0_SYSTEM_PROMPT = """You are a Product Requirements specialist helping to break down features into implementable increments.
@@ -35,7 +48,11 @@ You are currently in **Phase 0: Context Gathering**.
 - Identify common dependencies
 - Understand the system's scope
 
-When the user confirms readiness, respond with "PHASE_0_COMPLETE" on its own line to signal completion."""
+## Phase Completion
+IMPORTANT: After summarizing existing features, ask the user: "Are you ready to proceed to Phase 1 (Discovery)?"
+- WAIT for the user's response (e.g., "yes", "ready", "let's go")
+- DO NOT output "PHASE_0_COMPLETE" until AFTER the user confirms
+- Only when the user confirms readiness in their response, then output "PHASE_0_COMPLETE" on its own line"""
 
 
 PHASE_1_SYSTEM_PROMPT = """You are a Product Requirements specialist helping to break down features into implementable increments.
@@ -132,21 +149,17 @@ async def run_phase_0() -> tuple[str, str]:
     Returns:
         tuple: (features_directory, existing_features_context)
     """
-    print("=" * 70)
-    print("Welcome to the Feature Breakdown Agent!")
-    print("=" * 70)
-    print("\nThis agent will help you break down features into implementable")
-    print("increments through a 4-phase process:")
-    print("\n  Phase 0: Context Gathering")
-    print("  Phase 1: Discovery")
-    print("  Phase 2: Incremental Grouping")
-    print("  Phase 3: Prompt Generation")
-    print("\n" + "=" * 70)
-    print("\nStarting Phase 0: Context Gathering...")
-    print("=" * 70 + "\n")
+    # Display welcome banner
+    print_welcome()
+
+    # Display phase header
+    print_phase_header(0, "Context Gathering")
 
     features_directory = None
     existing_features_context = ""
+
+    # Initialize user input handler
+    user_input_handler = UserInput()
 
     # Configure agent options for Phase 0
     options = ClaudeAgentOptions(
@@ -158,22 +171,23 @@ async def run_phase_0() -> tuple[str, str]:
     # Use ClaudeSDKClient for stateful conversation
     async with ClaudeSDKClient(options=options) as client:
         # Initial agent greeting
-        print("Agent: Hello! Let's start by understanding your existing codebase.")
-        print("       Where is your feature documentation located?")
-        print("       (Press Enter for default: './features/')")
+        print_agent_message("Hello! Let's start by understanding your existing codebase.")
+        console.print("       Where is your feature documentation located?")
+        print_info("(Press Enter for default: './features/')")
+        console.print()
 
         first_message = True
 
         while True:
             try:
-                user_input = input("\nYou: ").strip()
+                user_input = await user_input_handler.get_input("You: ")
 
                 if not user_input:
                     # Use default
                     user_input = "./features/"
 
                 if user_input.lower() in ['exit', 'quit']:
-                    print("\nExiting Feature Breakdown Agent. Goodbye!")
+                    console.print("\n[info]Exiting Feature Breakdown Agent. Goodbye![/info]")
                     return None, None
 
                 # Build conversation context for first message
@@ -198,10 +212,12 @@ Please:
                 # Send query to agent
                 await client.query(prompt)
 
-                print("\nAgent: ", end="", flush=True)
+                console.print()
 
                 response_text = ""
-                # Stream response from agent
+                tool_used = False
+
+                # Collect response from agent
                 async for message in client.receive_response():
                     # Check message type using class name
                     message_class = type(message).__name__
@@ -211,34 +227,40 @@ Please:
                             for block in message.content:
                                 block_type = type(block).__name__
                                 if block_type == "TextBlock":
-                                    print(block.text, end="", flush=True)
                                     response_text += block.text
                                 elif block_type == "ToolUseBlock":
                                     tool_name = getattr(block, 'name', 'unknown')
-                                    print(f"\n[Using {tool_name}...]", end="", flush=True)
+                                    if not tool_used:
+                                        tool_used = True
+                                    print_tool_usage(tool_name)
+                                    console.print()
                     elif message_class == "ResultMessage":
                         break
 
-                print("\n")
+                # Display the full response with markdown rendering
+                console.print("[agent]Agent:[/agent]")
+                console.print()
+                print_agent_message_streaming(response_text)
+                console.print()
 
                 # Store context for Phase 1
                 existing_features_context += response_text + "\n"
 
-                # Check if phase is complete
-                if "PHASE_0_COMPLETE" in response_text or "phase 1" in response_text.lower():
-                    print("\n" + "=" * 70)
-                    print("Phase 0 Complete!")
-                    print("=" * 70 + "\n")
+                # Check if phase is complete (only on explicit signal)
+                if "PHASE_0_COMPLETE" in response_text:
+                    print_phase_complete(0, "Context Gathering")
                     return features_directory, existing_features_context
 
             except KeyboardInterrupt:
-                print("\n\nInterrupted. Type 'exit' to quit.")
+                console.print("\n")
+                print_info("Interrupted. Type 'exit' to quit.")
                 continue
             except Exception as e:
-                print(f"\n\nError: {e}")
+                console.print("\n")
+                print_error(str(e))
                 import traceback
                 traceback.print_exc()
-                print("Please try again or type 'exit' to quit.")
+                print_info("Please try again or type 'exit' to quit.")
 
 
 async def run_phase_1(features_directory: str, existing_features_context: str, future_features_directory: str = "./future-features/") -> tuple[bool, list[str]]:
@@ -254,12 +276,14 @@ async def run_phase_1(features_directory: str, existing_features_context: str, f
             - success: True if phase completed successfully, False if user exited
             - captured_future_features: List of future feature file paths created
     """
-    print("=" * 70)
-    print("Starting Phase 1: Discovery...")
-    print("=" * 70 + "\n")
+    # Display phase header
+    print_phase_header(1, "Discovery")
 
     # Track captured future features during this phase
     captured_future_features = []
+
+    # Initialize user input handler
+    user_input_handler = UserInput()
 
     # Configure agent options for Phase 1
     # Inject directory paths into the system prompt
@@ -287,9 +311,10 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
 
         await client.query(initial_prompt)
 
-        print("Agent: ", end="", flush=True)
+        response_text = ""
+        tool_used = False
 
-        # Get initial response
+        # Collect initial response
         async for message in client.receive_response():
             message_class = type(message).__name__
 
@@ -298,35 +323,44 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
                     for block in message.content:
                         block_type = type(block).__name__
                         if block_type == "TextBlock":
-                            print(block.text, end="", flush=True)
+                            response_text += block.text
                         elif block_type == "ToolUseBlock":
                             tool_name = getattr(block, 'name', 'unknown')
-                            print(f"\n[Using {tool_name}...]", end="", flush=True)
+                            if not tool_used:
+                                tool_used = True
+                            print_tool_usage(tool_name)
+                            console.print()
             elif message_class == "ResultMessage":
                 break
 
-        print("\n")
+        # Display the full response with markdown rendering
+        console.print("[agent]Agent:[/agent]")
+        console.print()
+        print_agent_message_streaming(response_text)
+        console.print()
 
         # Conversation loop
         while True:
             try:
-                user_input = input("\nYou: ").strip()
+                user_input = await user_input_handler.get_input("You: ")
 
                 if not user_input:
-                    print("Please provide a response.")
+                    print_info("Please provide a response.")
                     continue
 
                 if user_input.lower() in ['exit', 'quit']:
-                    print("\nExiting Feature Breakdown Agent. Goodbye!")
+                    console.print("\n[info]Exiting Feature Breakdown Agent. Goodbye![/info]")
                     return False, []
 
                 # Send user input to agent
                 await client.query(user_input)
 
-                print("\nAgent: ", end="", flush=True)
+                console.print()
 
                 response_text = ""
-                # Stream response from agent
+                tool_used = False
+
+                # Collect response from agent
                 async for message in client.receive_response():
                     message_class = type(message).__name__
 
@@ -335,11 +369,12 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
                             for block in message.content:
                                 block_type = type(block).__name__
                                 if block_type == "TextBlock":
-                                    print(block.text, end="", flush=True)
                                     response_text += block.text
                                 elif block_type == "ToolUseBlock":
                                     tool_name = getattr(block, 'name', 'unknown')
-                                    print(f"\n[Using {tool_name}...]", end="", flush=True)
+                                    if not tool_used:
+                                        tool_used = True
+                                    print_tool_usage(tool_name)
 
                                     # Track future feature file writes
                                     if tool_name == "Write":
@@ -348,29 +383,35 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
                                             file_path = block.input['file_path']
                                             if future_features_directory in file_path:
                                                 captured_future_features.append(file_path)
-                                                print(f" (Future feature captured)", end="", flush=True)
+                                                console.print(" [success](Future feature captured)[/success]")
+                                    console.print()
                     elif message_class == "ResultMessage":
                         break
 
-                print("\n")
+                # Display the full response with markdown rendering
+                console.print("[agent]Agent:[/agent]")
+                console.print()
+                print_agent_message_streaming(response_text)
+                console.print()
 
                 # Check if phase is complete
                 if "PHASE_1_COMPLETE" in response_text:
-                    print("\n" + "=" * 70)
-                    print("Phase 1 Complete!")
+                    extra_info = None
                     if captured_future_features:
-                        print(f"Captured {len(captured_future_features)} future feature(s) for later planning")
-                    print("=" * 70 + "\n")
+                        extra_info = f"Captured {len(captured_future_features)} future feature(s) for later planning"
+                    print_phase_complete(1, "Discovery", extra_info)
                     return True, captured_future_features
 
             except KeyboardInterrupt:
-                print("\n\nInterrupted. Type 'exit' to quit.")
+                console.print("\n")
+                print_info("Interrupted. Type 'exit' to quit.")
                 continue
             except Exception as e:
-                print(f"\n\nError: {e}")
+                console.print("\n")
+                print_error(str(e))
                 import traceback
                 traceback.print_exc()
-                print("Please try again or type 'exit' to quit.")
+                print_info("Please try again or type 'exit' to quit.")
 
 
 async def run_all_phases():
@@ -381,24 +422,36 @@ async def run_all_phases():
     if features_directory is None:
         return  # User exited
 
+    # Calculate future features directory as sibling to features directory
+    # Examples:
+    #   "./features/" → "./future-features/"
+    #   "docs/features/" → "docs/future-features/"
+    #   "./features" → "./future-features/"
+    import os
+    features_parent = os.path.dirname(features_directory.rstrip('/'))
+    if not features_parent:
+        features_parent = '.'
+    future_features_directory = os.path.join(features_parent, 'future-features')
+
     # Phase 1: Discovery
-    phase_1_success, captured_future_features = await run_phase_1(features_directory, existing_features_context)
+    phase_1_success, captured_future_features = await run_phase_1(
+        features_directory,
+        existing_features_context,
+        future_features_directory
+    )
 
     if not phase_1_success:
         return  # User exited
 
     # Display captured future features if any
     if captured_future_features:
-        print("\n" + "=" * 70)
-        print("Future Features Captured:")
-        print("=" * 70)
-        for feature_path in captured_future_features:
-            print(f"  - {feature_path}")
-        print("=" * 70 + "\n")
+        print_captured_features(captured_future_features)
 
     # TODO: Phase 2 and 3 to be implemented
     # When implementing Phase 2/3, pass captured_future_features to reference as dependencies
-    print("\n(Phases 2 and 3 will be implemented next)")
+    console.print()
+    print_info("(Phases 2 and 3 will be implemented next)")
+    console.print()
 
 
 def main():
