@@ -41,6 +41,7 @@ You are currently in **Phase 0: Context Gathering**.
 - Provide clear summaries of what you find
 - If no feature docs exist, that's fine - note it and proceed
 - Always ask for user confirmation before transitioning to the next phase
+- DO NOT include decorative boxes or phase headers (like ━━━ Phase 1 ━━━) - the system handles those automatically
 
 ## Context Awareness
 - Look for patterns in existing features
@@ -80,6 +81,7 @@ You are currently in **Phase 1: Discovery**.
 - Show that you're listening by referencing earlier responses
 - Don't just check boxes - dig deeper when answers are vague
 - Count your questions to ensure you ask at least 5 substantive ones
+- DO NOT include decorative boxes or phase headers (like ━━━ Phase 1 ━━━) - the system handles those automatically
 
 ## Handling Scope Creep and Future Features
 During discovery, the user may mention functionality that sounds like a **separate feature** rather than part of the current feature. When this happens:
@@ -237,19 +239,29 @@ Please:
                     elif message_class == "ResultMessage":
                         break
 
-                # Display the full response with markdown rendering
-                console.print("[agent]Agent:[/agent]")
-                console.print()
-                print_agent_message_streaming(response_text)
-                console.print()
-
                 # Store context for Phase 1
                 existing_features_context += response_text + "\n"
 
                 # Check if phase is complete (only on explicit signal)
                 if "PHASE_0_COMPLETE" in response_text:
+                    # Strip the completion signal and any phase transition formatting from display
+                    display_text = response_text.replace("PHASE_0_COMPLETE", "").strip()
+
+                    # Display the response without the completion signal
+                    if display_text:
+                        console.print("[agent]Agent:[/agent]")
+                        console.print()
+                        print_agent_message_streaming(display_text)
+                        console.print()
+
                     print_phase_complete(0, "Context Gathering")
                     return features_directory, existing_features_context
+                else:
+                    # Normal response - display it
+                    console.print("[agent]Agent:[/agent]")
+                    console.print()
+                    print_agent_message_streaming(response_text)
+                    console.print()
 
             except KeyboardInterrupt:
                 console.print("\n")
@@ -388,19 +400,29 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
                     elif message_class == "ResultMessage":
                         break
 
-                # Display the full response with markdown rendering
-                console.print("[agent]Agent:[/agent]")
-                console.print()
-                print_agent_message_streaming(response_text)
-                console.print()
-
                 # Check if phase is complete
                 if "PHASE_1_COMPLETE" in response_text:
+                    # Strip the completion signal from display
+                    display_text = response_text.replace("PHASE_1_COMPLETE", "").strip()
+
+                    # Display the response without the completion signal
+                    if display_text:
+                        console.print("[agent]Agent:[/agent]")
+                        console.print()
+                        print_agent_message_streaming(display_text)
+                        console.print()
+
                     extra_info = None
                     if captured_future_features:
                         extra_info = f"Captured {len(captured_future_features)} future feature(s) for later planning"
                     print_phase_complete(1, "Discovery", extra_info)
                     return True, captured_future_features
+                else:
+                    # Normal response - display it
+                    console.print("[agent]Agent:[/agent]")
+                    console.print()
+                    print_agent_message_streaming(response_text)
+                    console.print()
 
             except KeyboardInterrupt:
                 console.print("\n")
