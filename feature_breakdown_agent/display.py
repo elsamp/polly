@@ -10,6 +10,8 @@ from rich.panel import Panel
 from rich.markdown import Markdown
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.theme import Theme
+from rich.markdown import Markdown as RichMarkdown
+from rich.text import Text
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.styles import Style as PromptStyle
@@ -25,10 +27,51 @@ custom_theme = Theme({
     "warning": "bold yellow",
     "error": "bold red",
     "info": "blue",
+    "markdown.h1": "bold white",
+    "markdown.h2": "bold white",
+    "markdown.h3": "bold white",
 })
 
 # Initialize Rich console
 console = Console(theme=custom_theme)
+
+
+# Import Markdown internals
+from rich.markdown import Heading as RichHeading
+from rich.text import Text as RichText
+
+# Custom Heading class that uses left justification
+class LeftAlignedHeading(RichHeading):
+    """Heading element that aligns left instead of center."""
+
+    def __rich_console__(self, console, options):
+        """Render the heading with left alignment."""
+        text = self.text
+        text.justify = "left"  # Force left alignment
+        yield text
+
+
+# Custom Markdown that doesn't center headings
+class LeftAlignedMarkdown(Markdown):
+    """Markdown subclass that left-aligns all headings."""
+
+    def __init__(self, markup, **kwargs):
+        super().__init__(markup, inline_code_lexer=None, hyperlinks=False, **kwargs)
+        # Replace the Heading class with our left-aligned version
+        self.elements["heading_open"] = LeftAlignedHeading
+
+
+# Helper function to create left-aligned markdown
+def create_markdown(text: str) -> LeftAlignedMarkdown:
+    """Create a Markdown object with left-aligned text.
+
+    Args:
+        text: The markdown text to render
+
+    Returns:
+        LeftAlignedMarkdown object configured for left alignment
+    """
+    return LeftAlignedMarkdown(text)
 
 # Prompt Toolkit styling
 prompt_style = PromptStyle.from_dict({
@@ -99,7 +142,7 @@ def print_agent_message(message: str, render_markdown: bool = False):
     """
     console.print("[agent]Agent:[/agent] ", end="")
     if render_markdown:
-        console.print(Markdown(message))
+        console.print(create_markdown(message))
     else:
         console.print(message)
 
@@ -116,7 +159,7 @@ def print_agent_message_streaming(message: str, render_markdown: bool = True):
     """
     if render_markdown:
         # For markdown rendering, we need the full text at once
-        console.print(Markdown(message))
+        console.print(create_markdown(message))
     else:
         console.print(message, end="")
 
