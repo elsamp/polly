@@ -42,6 +42,7 @@ You are currently in **Phase 0: Context Gathering**.
 - If no feature docs exist, that's fine - note it and proceed
 - Always ask for user confirmation before transitioning to the next phase
 - DO NOT include decorative boxes or phase headers (like ━━━ Phase 1 ━━━) - the system handles those automatically
+- **IMPORTANT**: Before using any tool, always explain to the user what you're about to do (e.g., "Let me search for existing feature documentation..." before using Glob)
 
 ## Context Awareness
 - Look for patterns in existing features
@@ -82,6 +83,7 @@ You are currently in **Phase 1: Discovery**.
 - Don't just check boxes - dig deeper when answers are vague
 - Count your questions to ensure you ask at least 5 substantive ones
 - DO NOT include decorative boxes or phase headers (like ━━━ Phase 1 ━━━) - the system handles those automatically
+- **IMPORTANT**: Before using any tool, always explain to the user what you're about to do (e.g., "Let me create a feature summary document..." before using Write)
 
 ## Handling Scope Creep and Future Features
 During discovery, the user may mention functionality that sounds like a **separate feature** rather than part of the current feature. When this happens:
@@ -143,6 +145,88 @@ After writing the feature summary file, inform the user and respond with "PHASE_
 - Keep the main feature focused and well-defined
 - Minimum 5 clarifying questions before writing summary
 - Only write the summary when understanding is complete"""
+
+
+PHASE_2_SYSTEM_PROMPT = """You are a Product Requirements specialist helping to break down features into implementable increments.
+
+You are currently in **Phase 2: Incremental Grouping**.
+
+## Your Task
+1. Read the feature summary file created in Phase 1
+2. Analyze the feature functionality and break it into logical increments (2-8 increments)
+3. For each increment, ensure it is a **vertical slice** that:
+   - Delivers clear user value (not just scaffolding or infrastructure)
+   - Is independently testable by a user
+   - Touches all necessary layers (frontend, backend, database, etc.)
+   - Builds on previous increments
+4. Identify dependencies:
+   - Between increments (which must come before others)
+   - On existing features (from Phase 0 context)
+   - On future features (if any were captured in Phase 1)
+5. Present the increment structure to the user for review
+6. Adjust based on user feedback if requested
+7. Get user approval before proceeding to Phase 3
+
+## Guidelines for Vertical Slices
+Each increment MUST:
+- **Deliver user value**: The user can see/test something meaningful after this increment
+- **Be independently testable**: A user can verify it works on its own
+- **Touch all layers**: Not just "build database" then "build API" then "build UI" - each increment should go top-to-bottom
+- **Build incrementally**: Each one adds to the previous, creating a growing system
+
+**Good Example** (E-commerce cart feature):
+- Increment 1: Add single item to cart and view it (backend + frontend + storage)
+- Increment 2: Update quantity and remove items from cart
+- Increment 3: Persist cart across sessions
+- Increment 4: Calculate totals and apply basic discounts
+
+**Bad Example** (Not vertical slices):
+- Increment 1: Database schema for cart ❌ (no user value)
+- Increment 2: API endpoints for cart ❌ (still no user value)
+- Increment 3: Frontend UI for cart ❌ (horizontal layers)
+- Increment 4: Testing and polish ❌ (not a feature)
+
+## Presenting Increments
+When presenting your proposed increment structure, use this format:
+
+```
+Based on the feature requirements, I propose breaking this into N increments:
+
+**Increment 1: [Name]**
+- User Value: [What the user can do after this increment]
+- Scope: [Brief description of what's included]
+- Dependencies: [Any dependencies on existing features or previous increments]
+
+**Increment 2: [Name]**
+- User Value: [What the user can do after this increment]
+- Scope: [Brief description of what's included]
+- Dependencies: [Any dependencies]
+
+[Continue for all increments...]
+
+Does this incremental structure work for you, or would you like me to adjust the grouping?
+```
+
+## Handling User Feedback
+- If user requests changes, ask clarifying questions about what they want adjusted
+- Regroup and present again
+- Be flexible but ensure vertical slice principles are maintained
+- Explain reasoning if a user's request would violate vertical slice principles
+
+## Completion Signal
+Once the user approves the increment structure, respond with "PHASE_2_COMPLETE" on its own line to signal completion.
+
+## Important Context
+- You have access to:
+  - Feature summary from Phase 1 (at `{features_directory}/{feature_name_slug}.md`)
+  - Existing features context from Phase 0
+  - Any captured future features from Phase 1
+- Use the Read tool to read the feature summary file
+- Reference existing and future features when identifying dependencies
+- DO NOT include decorative boxes or phase headers - the system handles those automatically
+- Aim for 2-8 increments (fewer for simple features, more for complex ones)
+- Each increment should be achievable in a reasonable development effort
+- **IMPORTANT**: Before using any tool, always explain to the user what you're about to do (e.g., "Let me read the feature summary..." before using Read)"""
 
 
 async def run_phase_0() -> tuple[str, str]:
@@ -217,9 +301,10 @@ Please:
                 console.print()
 
                 response_text = ""
-                tool_used = False
+                first_block = True
+                displayed_text = False
 
-                # Collect response from agent
+                # Collect and display response from agent as it arrives
                 async for message in client.receive_response():
                     # Check message type using class name
                     message_class = type(message).__name__
@@ -229,39 +314,38 @@ Please:
                             for block in message.content:
                                 block_type = type(block).__name__
                                 if block_type == "TextBlock":
+                                    # Display agent label before first content
+                                    if first_block:
+                                        console.print("[agent]Agent:[/agent]")
+                                        console.print()
+                                        first_block = False
+
+                                    # Add spacing before subsequent text blocks
+                                    if displayed_text:
+                                        console.print()
+
+                                    # Display text immediately as it arrives
+                                    print_agent_message_streaming(block.text)
                                     response_text += block.text
+                                    displayed_text = True
                                 elif block_type == "ToolUseBlock":
                                     tool_name = getattr(block, 'name', 'unknown')
-                                    if not tool_used:
-                                        tool_used = True
                                     print_tool_usage(tool_name)
                                     console.print()
                     elif message_class == "ResultMessage":
                         break
+
+                # Add spacing after response
+                if response_text:
+                    console.print()
 
                 # Store context for Phase 1
                 existing_features_context += response_text + "\n"
 
                 # Check if phase is complete (only on explicit signal)
                 if "PHASE_0_COMPLETE" in response_text:
-                    # Strip the completion signal and any phase transition formatting from display
-                    display_text = response_text.replace("PHASE_0_COMPLETE", "").strip()
-
-                    # Display the response without the completion signal
-                    if display_text:
-                        console.print("[agent]Agent:[/agent]")
-                        console.print()
-                        print_agent_message_streaming(display_text)
-                        console.print()
-
                     print_phase_complete(0, "Context Gathering")
                     return features_directory, existing_features_context
-                else:
-                    # Normal response - display it
-                    console.print("[agent]Agent:[/agent]")
-                    console.print()
-                    print_agent_message_streaming(response_text)
-                    console.print()
 
             except KeyboardInterrupt:
                 console.print("\n")
@@ -324,9 +408,10 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
         await client.query(initial_prompt)
 
         response_text = ""
-        tool_used = False
+        first_block = True
+        displayed_text = False
 
-        # Collect initial response
+        # Collect and display initial response as it arrives
         async for message in client.receive_response():
             message_class = type(message).__name__
 
@@ -335,21 +420,30 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
                     for block in message.content:
                         block_type = type(block).__name__
                         if block_type == "TextBlock":
+                            # Display agent label before first content
+                            if first_block:
+                                console.print("[agent]Agent:[/agent]")
+                                console.print()
+                                first_block = False
+
+                            # Add spacing before subsequent text blocks
+                            if displayed_text:
+                                console.print()
+
+                            # Display text immediately as it arrives
+                            print_agent_message_streaming(block.text)
                             response_text += block.text
+                            displayed_text = True
                         elif block_type == "ToolUseBlock":
                             tool_name = getattr(block, 'name', 'unknown')
-                            if not tool_used:
-                                tool_used = True
                             print_tool_usage(tool_name)
                             console.print()
             elif message_class == "ResultMessage":
                 break
 
-        # Display the full response with markdown rendering
-        console.print("[agent]Agent:[/agent]")
-        console.print()
-        print_agent_message_streaming(response_text)
-        console.print()
+        # Add spacing after response
+        if response_text:
+            console.print()
 
         # Conversation loop
         while True:
@@ -370,9 +464,10 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
                 console.print()
 
                 response_text = ""
-                tool_used = False
+                first_block = True
+                displayed_text = False
 
-                # Collect response from agent
+                # Collect and display response from agent as it arrives
                 async for message in client.receive_response():
                     message_class = type(message).__name__
 
@@ -381,11 +476,22 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
                             for block in message.content:
                                 block_type = type(block).__name__
                                 if block_type == "TextBlock":
+                                    # Display agent label before first content
+                                    if first_block:
+                                        console.print("[agent]Agent:[/agent]")
+                                        console.print()
+                                        first_block = False
+
+                                    # Add spacing before subsequent text blocks
+                                    if displayed_text:
+                                        console.print()
+
+                                    # Display text immediately as it arrives
+                                    print_agent_message_streaming(block.text)
                                     response_text += block.text
+                                    displayed_text = True
                                 elif block_type == "ToolUseBlock":
                                     tool_name = getattr(block, 'name', 'unknown')
-                                    if not tool_used:
-                                        tool_used = True
                                     print_tool_usage(tool_name)
 
                                     # Track future feature file writes
@@ -400,29 +506,204 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
                     elif message_class == "ResultMessage":
                         break
 
+                # Add spacing after response
+                if response_text:
+                    console.print()
+
                 # Check if phase is complete
                 if "PHASE_1_COMPLETE" in response_text:
-                    # Strip the completion signal from display
-                    display_text = response_text.replace("PHASE_1_COMPLETE", "").strip()
-
-                    # Display the response without the completion signal
-                    if display_text:
-                        console.print("[agent]Agent:[/agent]")
-                        console.print()
-                        print_agent_message_streaming(display_text)
-                        console.print()
-
                     extra_info = None
                     if captured_future_features:
                         extra_info = f"Captured {len(captured_future_features)} future feature(s) for later planning"
                     print_phase_complete(1, "Discovery", extra_info)
                     return True, captured_future_features
-                else:
-                    # Normal response - display it
-                    console.print("[agent]Agent:[/agent]")
+
+            except KeyboardInterrupt:
+                console.print("\n")
+                print_info("Interrupted. Type 'exit' to quit.")
+                continue
+            except Exception as e:
+                console.print("\n")
+                print_error(str(e))
+                import traceback
+                traceback.print_exc()
+                print_info("Please try again or type 'exit' to quit.")
+
+
+async def run_phase_2(features_directory: str, existing_features_context: str, captured_future_features: list[str]) -> bool:
+    """Run Phase 2: Incremental Grouping.
+
+    Args:
+        features_directory: Path to features directory
+        existing_features_context: Summary of existing features from Phase 0
+        captured_future_features: List of future feature file paths from Phase 1
+
+    Returns:
+        bool: True if phase completed successfully, False if user exited
+    """
+    # Display phase header
+    print_phase_header(2, "Incremental Grouping")
+
+    # Initialize user input handler
+    user_input_handler = UserInput()
+
+    # Configure agent options for Phase 2
+    # We need to know the feature name slug - we'll extract it from the latest feature file
+    # The feature file should be at features_directory/[feature-name].md
+    import os
+    from pathlib import Path
+
+    # Find the most recently modified .md file in features_directory (should be from Phase 1)
+    feature_files = list(Path(features_directory).glob("*.md"))
+    if not feature_files:
+        print_error("No feature summary file found. Cannot proceed to Phase 2.")
+        return False
+
+    # Get the most recent feature file
+    latest_feature_file = max(feature_files, key=lambda p: p.stat().st_mtime)
+    feature_name_slug = latest_feature_file.stem
+
+    # Inject paths into the system prompt
+    phase_2_prompt = PHASE_2_SYSTEM_PROMPT.replace("{features_directory}", features_directory)
+    phase_2_prompt = phase_2_prompt.replace("{feature_name_slug}", feature_name_slug)
+
+    options = ClaudeAgentOptions(
+        system_prompt=phase_2_prompt,
+        allowed_tools=["Read", "Glob", "Grep"],
+        permission_mode="acceptEdits",
+    )
+
+    # Use ClaudeSDKClient for stateful conversation
+    async with ClaudeSDKClient(options=options) as client:
+        # Build context about captured future features
+        future_features_context = ""
+        if captured_future_features:
+            future_features_context = f"\n\nCaptured future features from Phase 1:\n"
+            for feature_path in captured_future_features:
+                future_features_context += f"- {feature_path}\n"
+
+        # Initial context for Phase 2
+        initial_prompt = f"""We've completed Phase 1 (Discovery).
+
+The feature summary was saved to: {latest_feature_file}
+
+Here's what we know from earlier phases:
+
+**Existing Features** (from Phase 0):
+{existing_features_context}
+{future_features_context}
+
+Now let's start Phase 2 (Incremental Grouping).
+
+Please:
+1. Read the feature summary file to understand what needs to be built
+2. Break the feature into logical increments (2-8 increments)
+3. Ensure each increment is a vertical slice that delivers user value
+4. Identify dependencies on existing features and between increments
+5. Present your proposed increment structure for my review
+
+Remember: Each increment must be independently testable and deliver clear user value."""
+
+        await client.query(initial_prompt)
+
+        response_text = ""
+        first_block = True
+        displayed_text = False
+
+        # Collect and display initial response as it arrives
+        async for message in client.receive_response():
+            message_class = type(message).__name__
+
+            if message_class == "AssistantMessage":
+                if hasattr(message, 'content'):
+                    for block in message.content:
+                        block_type = type(block).__name__
+                        if block_type == "TextBlock":
+                            # Display agent label before first content
+                            if first_block:
+                                console.print("[agent]Agent:[/agent]")
+                                console.print()
+                                first_block = False
+
+                            # Add spacing before subsequent text blocks
+                            if displayed_text:
+                                console.print()
+
+                            # Display text immediately as it arrives
+                            print_agent_message_streaming(block.text)
+                            response_text += block.text
+                            displayed_text = True
+                        elif block_type == "ToolUseBlock":
+                            tool_name = getattr(block, 'name', 'unknown')
+                            print_tool_usage(tool_name)
+                            console.print()
+            elif message_class == "ResultMessage":
+                break
+
+        # Add spacing after response
+        if response_text:
+            console.print()
+
+        # Conversation loop
+        while True:
+            try:
+                user_input = await user_input_handler.get_input("You: ")
+
+                if not user_input:
+                    print_info("Please provide a response.")
+                    continue
+
+                if user_input.lower() in ['exit', 'quit']:
+                    console.print("\n[info]Exiting Feature Breakdown Agent. Goodbye![/info]")
+                    return False
+
+                # Send user input to agent
+                await client.query(user_input)
+
+                console.print()
+
+                response_text = ""
+                first_block = True
+                displayed_text = False
+
+                # Collect and display response from agent as it arrives
+                async for message in client.receive_response():
+                    message_class = type(message).__name__
+
+                    if message_class == "AssistantMessage":
+                        if hasattr(message, 'content'):
+                            for block in message.content:
+                                block_type = type(block).__name__
+                                if block_type == "TextBlock":
+                                    # Display agent label before first content
+                                    if first_block:
+                                        console.print("[agent]Agent:[/agent]")
+                                        console.print()
+                                        first_block = False
+
+                                    # Add spacing before subsequent text blocks
+                                    if displayed_text:
+                                        console.print()
+
+                                    # Display text immediately as it arrives
+                                    print_agent_message_streaming(block.text)
+                                    response_text += block.text
+                                    displayed_text = True
+                                elif block_type == "ToolUseBlock":
+                                    tool_name = getattr(block, 'name', 'unknown')
+                                    print_tool_usage(tool_name)
+                                    console.print()
+                    elif message_class == "ResultMessage":
+                        break
+
+                # Add spacing after response
+                if response_text:
                     console.print()
-                    print_agent_message_streaming(response_text)
-                    console.print()
+
+                # Check if phase is complete
+                if "PHASE_2_COMPLETE" in response_text:
+                    print_phase_complete(2, "Incremental Grouping")
+                    return True
 
             except KeyboardInterrupt:
                 console.print("\n")
@@ -469,10 +750,19 @@ async def run_all_phases():
     if captured_future_features:
         print_captured_features(captured_future_features)
 
-    # TODO: Phase 2 and 3 to be implemented
-    # When implementing Phase 2/3, pass captured_future_features to reference as dependencies
+    # Phase 2: Incremental Grouping
+    phase_2_success = await run_phase_2(
+        features_directory,
+        existing_features_context,
+        captured_future_features
+    )
+
+    if not phase_2_success:
+        return  # User exited
+
+    # TODO: Phase 3 to be implemented
     console.print()
-    print_info("(Phases 2 and 3 will be implemented next)")
+    print_info("(Phase 3 will be implemented next)")
     console.print()
 
 
