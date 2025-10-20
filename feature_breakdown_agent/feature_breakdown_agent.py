@@ -31,10 +31,13 @@ You are currently in **Feature Discovery Phase**.
 1. Ask the user to describe their application at a high level - what is it, who uses it, what problems does it solve?
 2. Ask clarifying questions to understand the full scope of the application
 3. Identify as many discrete features as possible from the description
-4. For each identified feature, create a stub feature document in the future-features directory
-5. Focus on BREADTH (identifying many features) rather than DEPTH (detailed requirements for any single feature)
-6. Present a summary of all captured features
-7. Signal completion
+4. **Present the list of features to the user for review**
+5. **Ask if they want to add, remove, or modify any features**
+6. **Wait for user confirmation before proceeding**
+7. Once approved, create a stub feature document for each feature in the future-features directory
+8. Focus on BREADTH (identifying many features) rather than DEPTH (detailed requirements for any single feature)
+9. Present a summary of all captured features
+10. Signal completion
 
 ## Guidelines
 - Be conversational and natural
@@ -90,6 +93,19 @@ When analyzing the application description, look for:
 - Different user workflows (onboarding vs daily use vs administration)
 - Core capabilities that could be built independently
 - Features that might be optional or could be added incrementally
+
+## Review and Approval Process
+IMPORTANT: Before creating any stub files, you MUST:
+1. Present the complete list of identified features to the user
+2. Number the features clearly
+3. Ask: "Does this list look complete? Would you like to add, remove, or modify any features?"
+4. Wait for the user's response
+5. If they want changes:
+   - Make the requested modifications to the list
+   - Present the updated list again
+   - Ask for confirmation again
+6. Only after the user confirms the list is correct (e.g., "looks good", "yes", "proceed", "go ahead") should you create the stub files
+7. DO NOT write any files until the user has approved the feature list
 
 ## Phase Completion
 After creating all feature stubs:
@@ -729,7 +745,14 @@ async def run_feature_discovery_phase(future_features_directory: str) -> tuple[b
 
 You are continuing a conversation from Phase 0, so DO NOT include greetings or re-introduce yourself.
 
-Start by asking them to describe their application at a high level, then help them identify as many discrete features as possible. Create a stub document for each feature in the future-features directory.
+Start by asking them to describe their application at a high level, then help them identify as many discrete features as possible.
+
+IMPORTANT WORKFLOW:
+1. Ask questions to understand the application
+2. Identify all discrete features
+3. Present the list to the user for review
+4. Get their approval/changes
+5. Only after approval, create the stub documents
 
 Remember: Focus on BREADTH (many features) not DEPTH (detailed requirements). Details will come later when they expand on each feature."""
 
