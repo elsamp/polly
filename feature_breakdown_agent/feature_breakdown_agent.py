@@ -32,7 +32,7 @@ You are currently in **Phase 0: Context Gathering**.
 2. Search for existing feature documentation files (*.md) in that directory using the Glob tool
 3. Read the relevant feature files using the Read tool to understand the existing system
 4. Summarize what you learned about existing features
-5. Ask the user if they're ready to proceed to Phase 1 (Discovery)
+5. Signal completion so the user can choose their next action
 
 ## Guidelines
 - Use the Read tool to read markdown files
@@ -40,7 +40,6 @@ You are currently in **Phase 0: Context Gathering**.
 - Be conversational and natural
 - Provide clear summaries of what you find
 - If no feature docs exist, that's fine - note it and proceed
-- Always ask for user confirmation before transitioning to the next phase
 - DO NOT include decorative boxes or phase headers (like ━━━ Phase 1 ━━━) - the system handles those automatically
 - **IMPORTANT**: Before using any tool, always explain to the user what you're about to do (e.g., "Let me search for existing feature documentation..." before using Glob)
 
@@ -51,12 +50,13 @@ You are currently in **Phase 0: Context Gathering**.
 - Understand the system's scope
 
 ## Phase Completion
-IMPORTANT: After summarizing existing features, ask the user: "Are you ready to proceed to Phase 1 (Discovery)?"
+IMPORTANT: After summarizing existing features:
+- Ask the user if they're ready to continue: "Ready to continue?"
 - WAIT for the user's response (e.g., "yes", "ready", "let's go")
 - DO NOT output "PHASE_0_COMPLETE" until AFTER the user confirms
 - When the user confirms readiness, respond with ONLY the text "PHASE_0_COMPLETE" on its own line
-- DO NOT include any additional text, transition messages, or Phase 1 questions
-- The next phase will handle its own introduction"""
+- DO NOT include any additional text, transition messages, or mention of next phases
+- DO NOT ask about specific actions - the system will present options to the user"""
 
 
 PHASE_1_SYSTEM_PROMPT = """You are a Product Requirements specialist helping to break down features into implementable increments.
@@ -502,13 +502,243 @@ Please:
                 print_info("Please try again or type 'exit' to quit.")
 
 
-async def run_phase_1(features_directory: str, existing_features_context: str, future_features_directory: str = "./future-features/") -> tuple[bool, list[str]]:
+async def get_user_action_choice(features_directory: str, future_features_directory: str) -> tuple[str, str | None]:
+    """Present user with choice of actions after Phase 0.
+
+    Args:
+        features_directory: Path to features directory
+        future_features_directory: Path to future-features directory
+
+    Returns:
+        tuple: (action: str, selected_file: str | None)
+            - action: One of "new", "expand", "continue", or "exit"
+            - selected_file: Path to selected file for "expand" or "continue", None for "new"
+    """
+    from pathlib import Path
+
+    console.print()
+    console.print("[info]═══════════════════════════════════════════════════════════════[/info]")
+    console.print()
+    console.print("[agent]How would you like to proceed?[/agent]")
+    console.print()
+    console.print("  [bold]1.[/bold] Define a new feature")
+    console.print("  [bold]2.[/bold] Expand on an existing future-feature stub")
+    console.print("  [bold]3.[/bold] Continue with an existing feature")
+    console.print()
+    console.print("[info]═══════════════════════════════════════════════════════════════[/info]")
+    console.print()
+
+    user_input_handler = UserInput()
+
+    while True:
+        try:
+            choice = await user_input_handler.get_input("Enter your choice (1-3): ")
+            choice = choice.strip()
+
+            if choice.lower() in ['exit', 'quit']:
+                return "exit", None
+
+            if choice == "1":
+                return "new", None
+
+            elif choice == "2":
+                # List available future-features
+                future_features_path = Path(future_features_directory)
+                if not future_features_path.exists():
+                    console.print()
+                    print_error(f"No future-features directory found at: {future_features_directory}")
+                    print_info("Please choose option 1 to define a new feature.")
+                    console.print()
+                    continue
+
+                future_feature_files = list(future_features_path.glob("*.md"))
+                if not future_feature_files:
+                    console.print()
+                    print_error("No future-feature stubs found.")
+                    print_info("Please choose option 1 to define a new feature.")
+                    console.print()
+                    continue
+
+                # Display available future-features
+                console.print()
+                console.print("[agent]Available future-features:[/agent]")
+                console.print()
+                for idx, file in enumerate(future_feature_files, 1):
+                    console.print(f"  [bold]{idx}.[/bold] {file.stem}")
+                console.print()
+
+                # Get user selection
+                selection = await user_input_handler.get_input(f"Select a future-feature (1-{len(future_feature_files)}): ")
+                selection = selection.strip()
+
+                if selection.lower() in ['exit', 'quit']:
+                    return "exit", None
+
+                try:
+                    idx = int(selection) - 1
+                    if 0 <= idx < len(future_feature_files):
+                        return "expand", str(future_feature_files[idx])
+                    else:
+                        print_error("Invalid selection. Please try again.")
+                        console.print()
+                        continue
+                except ValueError:
+                    print_error("Invalid input. Please enter a number.")
+                    console.print()
+                    continue
+
+            elif choice == "3":
+                # Find incomplete features
+                incomplete_features = find_incomplete_features(features_directory)
+
+                if not incomplete_features:
+                    console.print()
+                    print_error("No incomplete features found.")
+                    print_info("Please choose option 1 to define a new feature.")
+                    console.print()
+                    continue
+
+                # Display incomplete features
+                console.print()
+                console.print("[agent]Incomplete features:[/agent]")
+                console.print()
+                for idx, (feature_slug, status) in enumerate(incomplete_features, 1):
+                    console.print(f"  [bold]{idx}.[/bold] {feature_slug} ({status})")
+                console.print()
+
+                # Get user selection
+                selection = await user_input_handler.get_input(f"Select a feature (1-{len(incomplete_features)}): ")
+                selection = selection.strip()
+
+                if selection.lower() in ['exit', 'quit']:
+                    return "exit", None
+
+                try:
+                    idx = int(selection) - 1
+                    if 0 <= idx < len(incomplete_features):
+                        feature_slug, _ = incomplete_features[idx]
+                        return "continue", feature_slug
+                    else:
+                        print_error("Invalid selection. Please try again.")
+                        console.print()
+                        continue
+                except ValueError:
+                    print_error("Invalid input. Please enter a number.")
+                    console.print()
+                    continue
+            else:
+                print_error("Invalid choice. Please enter 1, 2, or 3.")
+                console.print()
+                continue
+
+        except KeyboardInterrupt:
+            console.print("\n")
+            print_info("Interrupted. Type 'exit' to quit.")
+            continue
+
+
+def find_incomplete_features(features_directory: str) -> list[tuple[str, str]]:
+    """Find features that are incomplete (missing increments or prompts).
+
+    Args:
+        features_directory: Path to features directory
+
+    Returns:
+        list: List of (feature_slug, status) tuples
+            status can be: "missing increments", "missing prompts", "incomplete prompts"
+    """
+    from pathlib import Path
+    import os
+
+    features_path = Path(features_directory)
+    if not features_path.exists():
+        return []
+
+    # Calculate prompts directory (sibling to features)
+    features_parent = os.path.dirname(features_directory.rstrip('/'))
+    if not features_parent:
+        features_parent = '.'
+    prompts_directory = os.path.join(features_parent, 'prompts')
+    prompts_path = Path(prompts_directory)
+
+    incomplete = []
+
+    # Get all feature summary files (exclude *_increments.md files)
+    feature_files = [f for f in features_path.glob("*.md") if not f.stem.endswith("_increments")]
+
+    for feature_file in feature_files:
+        feature_slug = feature_file.stem
+
+        # Check for increments file
+        increments_file = features_path / f"{feature_slug}_increments.md"
+        if not increments_file.exists():
+            incomplete.append((feature_slug, "missing increments"))
+            continue
+
+        # Check for prompts directory
+        feature_prompts_dir = prompts_path / feature_slug
+        if not feature_prompts_dir.exists():
+            incomplete.append((feature_slug, "missing prompts"))
+            continue
+
+        # Check if prompts directory is empty
+        prompt_files = list(feature_prompts_dir.glob("increment_*.md"))
+        if not prompt_files:
+            incomplete.append((feature_slug, "missing prompts"))
+
+    return incomplete
+
+
+def determine_resume_phase(features_directory: str, feature_slug: str) -> int:
+    """Determine which phase to resume for an incomplete feature.
+
+    Args:
+        features_directory: Path to features directory
+        feature_slug: Slug of the feature to resume
+
+    Returns:
+        int: Phase number to resume (1, 2, or 3)
+    """
+    from pathlib import Path
+    import os
+
+    features_path = Path(features_directory)
+
+    # Check if feature summary exists
+    feature_file = features_path / f"{feature_slug}.md"
+    if not feature_file.exists():
+        # No feature summary - start from Phase 1
+        return 1
+
+    # Check if increments file exists
+    increments_file = features_path / f"{feature_slug}_increments.md"
+    if not increments_file.exists():
+        # Has summary but no increments - start from Phase 2
+        return 2
+
+    # Has both summary and increments - check for prompts
+    features_parent = os.path.dirname(features_directory.rstrip('/'))
+    if not features_parent:
+        features_parent = '.'
+    prompts_directory = os.path.join(features_parent, 'prompts')
+    feature_prompts_dir = Path(prompts_directory) / feature_slug
+
+    if not feature_prompts_dir.exists() or not list(feature_prompts_dir.glob("increment_*.md")):
+        # Has summary and increments but no prompts - start from Phase 3
+        return 3
+
+    # Has everything but may be incomplete - start from Phase 3 to regenerate
+    return 3
+
+
+async def run_phase_1(features_directory: str, existing_features_context: str, future_features_directory: str = "./future-features/", initial_feature_context: str = None) -> tuple[bool, list[str]]:
     """Run Phase 1: Discovery.
 
     Args:
         features_directory: Path to features directory from Phase 0
         existing_features_context: Summary of existing features from Phase 0
         future_features_directory: Path to save future feature placeholders
+        initial_feature_context: Optional context from a future-feature stub to expand
 
     Returns:
         tuple: (success: bool, captured_future_features: list[str])
@@ -538,7 +768,26 @@ async def run_phase_1(features_directory: str, existing_features_context: str, f
     # Use ClaudeSDKClient for stateful conversation
     async with ClaudeSDKClient(options=options) as client:
         # Initial context for Phase 1
-        initial_prompt = f"""We've completed Phase 0 (Context Gathering).
+        if initial_feature_context:
+            # Expanding a future-feature stub
+            initial_prompt = f"""We've completed Phase 0 (Context Gathering).
+
+Here's what we learned about existing features:
+{existing_features_context}
+
+The features are located in: {features_directory}
+Future features will be saved to: {future_features_directory}
+
+Now let's start Phase 1 (Discovery). The user has selected a future-feature stub to expand on.
+
+Here's the content of the future-feature stub:
+
+{initial_feature_context}
+
+Please use this as the starting point for your discovery conversation. Ask clarifying questions to expand on this initial concept and develop it into a fully detailed feature. Reference the stub content when asking questions to show you're building on the existing idea."""
+        else:
+            # Starting fresh with a new feature
+            initial_prompt = f"""We've completed Phase 0 (Context Gathering).
 
 Here's what we learned about existing features:
 {existing_features_context}
@@ -1109,6 +1358,9 @@ Remember to generate prompts sequentially (one at a time) so dependencies are cl
 
 async def run_all_phases():
     """Run all phases in sequence."""
+    import os
+    from pathlib import Path
+
     # Phase 0: Context Gathering
     features_directory, existing_features_context = await run_phase_0()
 
@@ -1120,40 +1372,83 @@ async def run_all_phases():
     #   "./features/" → "./future-features/"
     #   "docs/features/" → "docs/future-features/"
     #   "./features" → "./future-features/"
-    import os
     features_parent = os.path.dirname(features_directory.rstrip('/'))
     if not features_parent:
         features_parent = '.'
     future_features_directory = os.path.join(features_parent, 'future-features')
 
-    # Phase 1: Discovery
-    phase_1_success, captured_future_features = await run_phase_1(
-        features_directory,
-        existing_features_context,
-        future_features_directory
-    )
+    # Get user's choice of action
+    action, selected_file = await get_user_action_choice(features_directory, future_features_directory)
 
-    if not phase_1_success:
-        return  # User exited
+    if action == "exit":
+        console.print("\n[info]Exiting Feature Breakdown Agent. Goodbye![/info]")
+        return
 
-    # Display captured future features if any from Phase 1
-    if captured_future_features:
-        print_captured_features(captured_future_features)
+    # Initialize variables that will be used across phases
+    captured_future_features = []
+    captured_future_features_phase2 = []
+    initial_feature_context = None
+    resume_phase = 1
 
-    # Phase 2: Incremental Grouping
-    phase_2_success, captured_future_features_phase2 = await run_phase_2(
-        features_directory,
-        existing_features_context,
-        captured_future_features,
-        future_features_directory
-    )
+    # Handle different action paths
+    if action == "new":
+        # Continue with normal flow starting at Phase 1
+        resume_phase = 1
 
-    if not phase_2_success:
-        return  # User exited
+    elif action == "expand":
+        # Read the future-feature stub and pass it to Phase 1
+        try:
+            with open(selected_file, 'r') as f:
+                initial_feature_context = f.read()
+            console.print()
+            print_info(f"Expanding on future-feature: {Path(selected_file).stem}")
+            console.print()
+            resume_phase = 1
+        except Exception as e:
+            print_error(f"Failed to read future-feature file: {e}")
+            return
 
-    # Display captured future features from Phase 2 if any
-    if captured_future_features_phase2:
-        print_captured_features(captured_future_features_phase2)
+    elif action == "continue":
+        # Determine which phase to resume
+        feature_slug = selected_file  # In this case, selected_file is the feature slug
+        resume_phase = determine_resume_phase(features_directory, feature_slug)
+        console.print()
+        print_info(f"Continuing feature: {feature_slug}")
+        print_info(f"Resuming at Phase {resume_phase}")
+        console.print()
+
+    # Execute phases based on resume_phase
+    if resume_phase <= 1:
+        # Phase 1: Discovery
+        phase_1_success, captured_future_features = await run_phase_1(
+            features_directory,
+            existing_features_context,
+            future_features_directory,
+            initial_feature_context=initial_feature_context
+        )
+
+        if not phase_1_success:
+            return  # User exited
+
+        # Display captured future features if any from Phase 1
+        if captured_future_features:
+            print_captured_features(captured_future_features)
+
+    if resume_phase <= 2:
+        # Phase 2: Incremental Grouping
+        phase_2_success, captured_future_features_phase2 = await run_phase_2(
+            features_directory,
+            existing_features_context,
+            captured_future_features,
+            future_features_directory
+        )
+
+        if not phase_2_success:
+            return  # User exited
+
+        # Display captured future features from Phase 2 if any
+        if captured_future_features_phase2:
+            print_captured_features(captured_future_features_phase2)
 
     # Combine all captured future features for Phase 3
     all_captured_future_features = captured_future_features + captured_future_features_phase2
@@ -1165,16 +1460,17 @@ async def run_all_phases():
     #   "./features" → "./prompts/"
     prompts_directory = os.path.join(features_parent, 'prompts')
 
-    # Phase 3: Prompt Generation
-    phase_3_success = await run_phase_3(
-        features_directory,
-        existing_features_context,
-        all_captured_future_features,
-        prompts_directory=prompts_directory
-    )
+    if resume_phase <= 3:
+        # Phase 3: Prompt Generation
+        phase_3_success = await run_phase_3(
+            features_directory,
+            existing_features_context,
+            all_captured_future_features,
+            prompts_directory=prompts_directory
+        )
 
-    if not phase_3_success:
-        return  # User exited
+        if not phase_3_success:
+            return  # User exited
 
     # All phases complete!
     console.print()
