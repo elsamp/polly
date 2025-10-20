@@ -54,7 +54,9 @@ You are currently in **Phase 0: Context Gathering**.
 IMPORTANT: After summarizing existing features, ask the user: "Are you ready to proceed to Phase 1 (Discovery)?"
 - WAIT for the user's response (e.g., "yes", "ready", "let's go")
 - DO NOT output "PHASE_0_COMPLETE" until AFTER the user confirms
-- Only when the user confirms readiness in their response, then output "PHASE_0_COMPLETE" on its own line"""
+- When the user confirms readiness, respond with ONLY the text "PHASE_0_COMPLETE" on its own line
+- DO NOT include any additional text, transition messages, or Phase 1 questions
+- The next phase will handle its own introduction"""
 
 
 PHASE_1_SYSTEM_PROMPT = """You are a Product Requirements specialist helping to break down features into implementable increments.
@@ -136,7 +138,10 @@ When you have sufficient understanding:
    - Open Questions (if any)
 
 ## Completion Signal
-After writing the feature summary file, inform the user and respond with "PHASE_1_COMPLETE" on its own line to signal completion.
+After writing the feature summary file, inform the user that the summary is complete.
+Then respond with ONLY the text "PHASE_1_COMPLETE" on its own line.
+DO NOT include any additional text, transition messages, or Phase 2 content.
+The next phase will handle its own introduction.
 
 ## Important
 - You have access to existing feature context from Phase 0
@@ -228,7 +233,9 @@ Sometimes during incremental grouping, you or the user may realize that a propos
 5. **Reference when relevant**: If captured features relate to the current feature, note them as potential future dependencies
 
 ## Completion Signal
-Once the user approves the increment structure, respond with "PHASE_2_COMPLETE" on its own line to signal completion.
+Once the user approves the increment structure, respond with ONLY the text "PHASE_2_COMPLETE" on its own line.
+DO NOT include any additional text, transition messages, or Phase 3 content.
+The next phase will handle its own introduction.
 
 ## Important Context
 - You have access to:
@@ -319,6 +326,7 @@ Please:
                 response_text = ""
                 first_block = True
                 displayed_text = False
+                phase_complete = False
 
                 # Collect and display response from agent as it arrives
                 async for message in client.receive_response():
@@ -330,6 +338,13 @@ Please:
                             for block in message.content:
                                 block_type = type(block).__name__
                                 if block_type == "TextBlock":
+                                    # Check if this block contains the completion signal
+                                    if "PHASE_0_COMPLETE" in block.text:
+                                        phase_complete = True
+                                        response_text += block.text
+                                        # Don't display completion signal text
+                                        continue
+
                                     # Display agent label before first content
                                     if first_block:
                                         console.print("[agent]Agent:[/agent]")
@@ -351,15 +366,15 @@ Please:
                     elif message_class == "ResultMessage":
                         break
 
-                # Add spacing after response
-                if response_text:
+                # Add spacing after response (only if we displayed something)
+                if displayed_text:
                     console.print()
 
                 # Store context for Phase 1
                 existing_features_context += response_text + "\n"
 
-                # Check if phase is complete (only on explicit signal)
-                if "PHASE_0_COMPLETE" in response_text:
+                # Check if phase is complete
+                if phase_complete:
                     print_phase_complete(0, "Context Gathering")
                     return features_directory, existing_features_context
 
@@ -482,6 +497,7 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
                 response_text = ""
                 first_block = True
                 displayed_text = False
+                phase_complete = False
 
                 # Collect and display response from agent as it arrives
                 async for message in client.receive_response():
@@ -492,6 +508,13 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
                             for block in message.content:
                                 block_type = type(block).__name__
                                 if block_type == "TextBlock":
+                                    # Check if this block contains the completion signal
+                                    if "PHASE_1_COMPLETE" in block.text:
+                                        phase_complete = True
+                                        response_text += block.text
+                                        # Don't display completion signal text
+                                        continue
+
                                     # Display agent label before first content
                                     if first_block:
                                         console.print("[agent]Agent:[/agent]")
@@ -522,12 +545,12 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
                     elif message_class == "ResultMessage":
                         break
 
-                # Add spacing after response
-                if response_text:
+                # Add spacing after response (only if we displayed something)
+                if displayed_text:
                     console.print()
 
                 # Check if phase is complete
-                if "PHASE_1_COMPLETE" in response_text:
+                if phase_complete:
                     extra_info = None
                     if captured_future_features:
                         extra_info = f"Captured {len(captured_future_features)} future feature(s) for later planning"
@@ -699,6 +722,7 @@ Remember: Each increment must be independently testable and deliver clear user v
                 response_text = ""
                 first_block = True
                 displayed_text = False
+                phase_complete = False
 
                 # Collect and display response from agent as it arrives
                 async for message in client.receive_response():
@@ -709,6 +733,13 @@ Remember: Each increment must be independently testable and deliver clear user v
                             for block in message.content:
                                 block_type = type(block).__name__
                                 if block_type == "TextBlock":
+                                    # Check if this block contains the completion signal
+                                    if "PHASE_2_COMPLETE" in block.text:
+                                        phase_complete = True
+                                        response_text += block.text
+                                        # Don't display completion signal text
+                                        continue
+
                                     # Display agent label before first content
                                     if first_block:
                                         console.print("[agent]Agent:[/agent]")
@@ -739,12 +770,12 @@ Remember: Each increment must be independently testable and deliver clear user v
                     elif message_class == "ResultMessage":
                         break
 
-                # Add spacing after response
-                if response_text:
+                # Add spacing after response (only if we displayed something)
+                if displayed_text:
                     console.print()
 
                 # Check if phase is complete
-                if "PHASE_2_COMPLETE" in response_text:
+                if phase_complete:
                     extra_info = None
                     if captured_future_features_phase2:
                         extra_info = f"Captured {len(captured_future_features_phase2)} future feature(s) during grouping"
