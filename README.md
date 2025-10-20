@@ -7,6 +7,7 @@ A terminal-based AI agent that transforms high-level feature descriptions into d
 This agent helps product managers, technical leads, and developers break down complex features into implementable vertical slices through an intelligent workflow:
 
 • **Context Gathering** - Reads existing feature documentation to understand your codebase
+• **Feature Discovery** - Identify multiple discrete features from high-level app descriptions (optional)
 • **Discovery** - Conducts an interactive conversation with minimum 5 clarifying questions
 • **Incremental Grouping** - Breaks features into 2-8 vertical slices with clear user value
 • **Prompt Generation** - Generates detailed, ready-to-implement coding prompts

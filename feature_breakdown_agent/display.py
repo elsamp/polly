@@ -93,6 +93,7 @@ into detailed, incremental coding prompts.
 
 ## Process Overview
 • **Context Gathering** - Understanding your project
+• **Feature Discovery** - Identifying multiple features at once (optional)
 • **Discovery** - Exploring feature ideas in detail
 • **Incremental Grouping** - Breaking down into vertical slices
 • **Prompt Generation** - Creating detailed prompts
