@@ -92,40 +92,38 @@ into detailed, incremental coding prompts.
 - **Existing Project?** Define new features or expand on existing stubs
 
 ## Process Overview
-1. **Phase 0**: Context Gathering - Understanding your project
-2. **Phase 1**: Discovery - Exploring feature ideas in detail
-3. **Phase 2**: Incremental Grouping - Breaking down into vertical slices
-4. **Phase 3**: Prompt Generation - Creating detailed prompts
+• **Context Gathering** - Understanding your project
+• **Discovery** - Exploring feature ideas in detail
+• **Incremental Grouping** - Breaking down into vertical slices
+• **Prompt Generation** - Creating detailed prompts
 """
     console.print(Panel(Markdown(welcome_text), border_style="cyan", padding=(1, 2)))
 
 
-def print_phase_header(phase_num: int | str, phase_name: str):
+def print_phase_header(phase_name: str):
     """Display phase transition header.
 
     Args:
-        phase_num: Phase number (0-3) or phase identifier string (e.g., "FD" for Feature Discovery)
-        phase_name: Human-readable phase name
+        phase_name: Human-readable phase name (e.g., "Context Gathering", "Feature Discovery")
     """
     console.print()
     console.print(Panel(
-        f"[bold white]Phase {phase_num}: {phase_name}[/bold white]",
+        f"[bold white]Starting: {phase_name}[/bold white]",
         border_style="phase",
         padding=(0, 2)
     ))
     console.print()
 
 
-def print_phase_complete(phase_num: int | str, phase_name: str, extra_info: str = None):
+def print_phase_complete(phase_name: str, extra_info: str = None):
     """Display phase completion message.
 
     Args:
-        phase_num: Phase number (0-3) or phase identifier string (e.g., "FD" for Feature Discovery)
-        phase_name: Human-readable phase name
+        phase_name: Human-readable phase name (e.g., "Context Gathering", "Feature Discovery")
         extra_info: Optional additional information to display
     """
     console.print()
-    message = f"✓ Phase {phase_num} Complete: {phase_name}"
+    message = f"✓ {phase_name} Complete"
     if extra_info:
         message += f"\n\n{extra_info}"
 

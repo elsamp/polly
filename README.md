@@ -4,12 +4,12 @@ A terminal-based AI agent that transforms high-level feature descriptions into d
 
 ## Overview
 
-This agent helps product managers, technical leads, and developers break down complex features into implementable vertical slices through an intelligent 4-phase workflow:
+This agent helps product managers, technical leads, and developers break down complex features into implementable vertical slices through an intelligent workflow:
 
-1. **Phase 0: Context Gathering** - Reads existing feature documentation to understand your codebase
-2. **Phase 1: Discovery** - Conducts an interactive conversation with minimum 5 clarifying questions
-3. **Phase 2: Incremental Grouping** - Breaks features into 2-8 vertical slices with clear user value
-4. **Phase 3: Prompt Generation** - Generates detailed, ready-to-implement coding prompts
+• **Context Gathering** - Reads existing feature documentation to understand your codebase
+• **Discovery** - Conducts an interactive conversation with minimum 5 clarifying questions
+• **Incremental Grouping** - Breaks features into 2-8 vertical slices with clear user value
+• **Prompt Generation** - Generates detailed, ready-to-implement coding prompts
 
 ## Key Features
 
@@ -123,7 +123,7 @@ feature-breakdown-agent
 Welcome to the Feature Breakdown Agent!
 ======================================================================
 
-Phase 0: Context Gathering
+Starting: Context Gathering
 ───────────────────────────────────────────────────────────────
 
 Agent: Hello! Let's start by understanding your project.
@@ -139,7 +139,7 @@ Agent: I found 3 existing features. Ready to continue?
 
 You: yes
 
-✓ Phase 0 Complete: Context Gathering
+✓ Context Gathering Complete
 
 ═══════════════════════════════════════════════════════════════
 How would you like to proceed?
@@ -178,13 +178,15 @@ uv run pytest tests/test_phase_0.py
 ✅ **MVP Complete** - All core features implemented
 
 **Implemented:**
-- ✅ Phase 0: Context Gathering
-- ✅ Phase 1: Discovery (with future-feature capture)
-- ✅ Phase 2: Incremental Grouping (with vertical slice validation)
-- ✅ Phase 3: Prompt Generation (template-based)
-- ✅ Multi-path workflow (new/expand/continue)
+- ✅ Context Gathering
+- ✅ Feature Discovery (identify multiple features at once)
+- ✅ Discovery (with future-feature capture)
+- ✅ Incremental Grouping (with vertical slice validation)
+- ✅ Prompt Generation (template-based)
+- ✅ Multi-path workflow (discover/new/expand/continue)
 - ✅ Continuous session support
 - ✅ Smart phase detection and resumption
+- ✅ Global CLI command (`polly`)
 
 **Project Structure:**
 ```

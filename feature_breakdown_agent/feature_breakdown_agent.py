@@ -476,7 +476,7 @@ async def run_phase_0() -> tuple[str, str]:
     print_welcome()
 
     # Display phase header
-    print_phase_header(0, "Context Gathering")
+    print_phase_header("Context Gathering")
 
     project_directory = None
     existing_features_context = ""
@@ -587,7 +587,7 @@ Please:
 
         # Check if phase completed immediately
         if phase_complete:
-            print_phase_complete(0, "Context Gathering")
+            print_phase_complete("Context Gathering")
             # Construct features_directory from project_directory
             import os
             if project_directory:
@@ -669,7 +669,7 @@ Please:
 
                 # Check if phase is complete
                 if phase_complete:
-                    print_phase_complete(0, "Context Gathering")
+                    print_phase_complete("Context Gathering")
                     # Construct features_directory from project_directory
                     import os
                     if project_directory:
@@ -704,7 +704,7 @@ async def run_feature_discovery_phase(future_features_directory: str) -> tuple[b
     """
     # Display phase header
     from .display import print_phase_header, print_phase_complete
-    print_phase_header("FD", "Feature Discovery")
+    print_phase_header("Feature Discovery")
 
     # Track discovered features during this phase
     discovered_features = []
@@ -791,7 +791,7 @@ Remember: Focus on BREADTH (many features) not DEPTH (detailed requirements). De
 
         # Check if phase completed immediately
         if phase_complete:
-            print_phase_complete("FD", "Feature Discovery", f"Discovered {len(discovered_features)} feature(s)")
+            print_phase_complete("Feature Discovery", f"Discovered {len(discovered_features)} feature(s)")
             return True, discovered_features
 
         # Conversation loop
@@ -868,7 +868,7 @@ Remember: Focus on BREADTH (many features) not DEPTH (detailed requirements). De
 
                 # Check if phase is complete
                 if phase_complete:
-                    print_phase_complete("FD", "Feature Discovery", f"Discovered {len(discovered_features)} feature(s)")
+                    print_phase_complete("Feature Discovery", f"Discovered {len(discovered_features)} feature(s)")
                     return True, discovered_features
 
             except KeyboardInterrupt:
@@ -1132,7 +1132,7 @@ async def run_phase_1(features_directory: str, existing_features_context: str, f
             - captured_future_features: List of future feature file paths created
     """
     # Display phase header
-    print_phase_header(1, "Discovery")
+    print_phase_header("Discovery")
 
     # Track captured future features during this phase
     captured_future_features = []
@@ -1240,7 +1240,7 @@ Please ask the user to describe the new feature they want to build, then ask cla
             extra_info = None
             if captured_future_features:
                 extra_info = f"Captured {len(captured_future_features)} future feature(s) for later planning"
-            print_phase_complete(1, "Discovery", extra_info)
+            print_phase_complete("Discovery", extra_info)
             return True, captured_future_features
 
         # Conversation loop
@@ -1321,7 +1321,7 @@ Please ask the user to describe the new feature they want to build, then ask cla
                     extra_info = None
                     if captured_future_features:
                         extra_info = f"Captured {len(captured_future_features)} future feature(s) for later planning"
-                    print_phase_complete(1, "Discovery", extra_info)
+                    print_phase_complete("Discovery", extra_info)
                     return True, captured_future_features
 
             except KeyboardInterrupt:
@@ -1351,7 +1351,7 @@ async def run_phase_2(features_directory: str, existing_features_context: str, c
             - captured_future_features: List of future feature file paths created during Phase 2
     """
     # Display phase header
-    print_phase_header(2, "Incremental Grouping")
+    print_phase_header("Incremental Grouping")
 
     # Track captured future features during this phase
     captured_future_features_phase2 = []
@@ -1481,7 +1481,7 @@ Remember: Each increment must be independently testable and deliver clear user v
             extra_info = None
             if captured_future_features_phase2:
                 extra_info = f"Captured {len(captured_future_features_phase2)} future feature(s) during grouping"
-            print_phase_complete(2, "Incremental Grouping", extra_info)
+            print_phase_complete("Incremental Grouping", extra_info)
             return True, captured_future_features_phase2
 
         # Conversation loop
@@ -1562,7 +1562,7 @@ Remember: Each increment must be independently testable and deliver clear user v
                     extra_info = None
                     if captured_future_features_phase2:
                         extra_info = f"Captured {len(captured_future_features_phase2)} future feature(s) during grouping"
-                    print_phase_complete(2, "Incremental Grouping", extra_info)
+                    print_phase_complete("Incremental Grouping", extra_info)
                     return True, captured_future_features_phase2
 
             except KeyboardInterrupt:
@@ -1595,7 +1595,7 @@ async def run_phase_3(
         bool: True if phase completed successfully, False if user exited
     """
     # Display phase header
-    print_phase_header(3, "Prompt Generation")
+    print_phase_header("Prompt Generation")
 
     # Initialize user input handler
     user_input_handler = UserInput()
@@ -1707,7 +1707,7 @@ Remember to generate prompts sequentially (one at a time) so dependencies are cl
 
         # Check if phase completed immediately (agent did all work in first response)
         if phase_complete:
-            print_phase_complete(3, "Prompt Generation")
+            print_phase_complete("Prompt Generation")
             return True
 
         # Conversation loop
@@ -1776,7 +1776,7 @@ Remember to generate prompts sequentially (one at a time) so dependencies are cl
 
                 # Check if phase is complete
                 if phase_complete:
-                    print_phase_complete(3, "Prompt Generation")
+                    print_phase_complete("Prompt Generation")
                     return True
 
             except KeyboardInterrupt:
