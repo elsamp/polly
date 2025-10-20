@@ -15,6 +15,7 @@ This agent helps product managers, technical leads, and developers break down co
 
 ### Multi-Path Workflow
 After context gathering, choose how to proceed:
+- **Discover application features** - Identify multiple discrete features at once (great for new projects)
 - **Define a new feature** - Start fresh with Phase 1 discovery
 - **Expand a future-feature stub** - Build on previously captured ideas
 - **Continue an incomplete feature** - Resume at the appropriate phase
@@ -47,27 +48,72 @@ claude --version
 
 ### Setup
 
-```bash
-# Clone the repository
-cd feature-breakdown-agent
+**Option 1: Install with uv (recommended - cleanest for development)**
 
-# Install dependencies
+```bash
+# From this directory, install in editable mode
+uv tool install --editable .
+
+# Now you can run 'polly' from anywhere!
+cd /path/to/any-project
+polly
+```
+
+**Option 2: Install with pipx (recommended for end users)**
+
+```bash
+# Install pipx if you don't have it
+pip install --user pipx
+pipx ensurepath
+
+# From this directory, install globally
+pipx install .
+
+# Now you can run 'polly' from anywhere!
+cd /path/to/any-project
+polly
+```
+
+**Option 3: Install with pip**
+
+```bash
+# From this directory, install globally
+pip install .
+
+# Run from anywhere
+cd /path/to/any-project
+polly
+```
+
+**Option 4: Development mode with uv (requires uv run prefix)**
+
+```bash
+# Install in editable mode
 uv pip install -e .
 
-# Install dev dependencies (for testing)
-uv pip install -e ".[dev]"
+# Run from your project using uv run
+cd /path/to/any-project
+uv run polly
 ```
 
 ## Usage
 
 ### Basic Usage
 
-```bash
-# Run the agent
-uv run feature-breakdown-agent
+**Important:** Run the agent from within your project directory. The agent will use your current working directory as the project root.
 
-# Or with python directly
-uv run python feature_breakdown_agent/feature_breakdown_agent.py
+```bash
+# Navigate to your project
+cd /path/to/your-project
+
+# If you installed with Option 1, 2, or 3:
+polly
+
+# If you installed with Option 4 (uv pip install -e):
+uv run polly
+
+# You can also use the full command name:
+feature-breakdown-agent
 ```
 
 ### Example Session
@@ -80,13 +126,14 @@ Welcome to the Feature Breakdown Agent!
 Phase 0: Context Gathering
 ───────────────────────────────────────────────────────────────
 
-Agent: Hello! Let's start by understanding your existing codebase.
-       Where is your feature documentation located?
-       (Press Enter for default: './features/')
+Agent: Hello! Let's start by understanding your project.
 
-You: ./features/
+Project folder: /Users/you/your-project
+       Is this correct? (Press Enter to confirm, or type a different path)
 
-[Agent searches and reads existing feature documentation]
+You: [Press Enter]
+
+[Agent checks for features/ folder and existing documentation]
 
 Agent: I found 3 existing features. Ready to continue?
 
@@ -97,15 +144,16 @@ You: yes
 ═══════════════════════════════════════════════════════════════
 How would you like to proceed?
 
-  1. Define a new feature
-  2. Expand on an existing future-feature stub
-  3. Continue with an existing feature
-  4. Exit
+  1. Discover application features (create multiple feature stubs)
+  2. Define a new feature
+  3. Expand on an existing future-feature stub
+  4. Continue with an existing feature
+  5. Exit
 ═══════════════════════════════════════════════════════════════
 
-Enter your choice (1-4): 1
+Enter your choice (1-5): 1
 
-[Proceeds to Phase 1: Discovery...]
+[Proceeds to Feature Discovery or Phase 1...]
 ```
 
 ## Development

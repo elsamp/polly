@@ -20,6 +20,7 @@ dev = [
 
 [project.scripts]
 feature-breakdown-agent = "feature_breakdown_agent.feature_breakdown_agent:main"
+polly = "feature_breakdown_agent.feature_breakdown_agent:main"
 
 [tool.setuptools.packages.find]
 include = ["feature_breakdown_agent*"]

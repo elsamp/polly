@@ -23,34 +23,133 @@ from .display import (
 )
 
 
+FEATURE_DISCOVERY_SYSTEM_PROMPT = """You are a Product Requirements specialist helping to identify discrete features for an application.
+
+You are currently in **Feature Discovery Phase**.
+
+## Your Task
+1. Ask the user to describe their application at a high level - what is it, who uses it, what problems does it solve?
+2. Ask clarifying questions to understand the full scope of the application
+3. Identify as many discrete features as possible from the description
+4. For each identified feature, create a stub feature document in the future-features directory
+5. Focus on BREADTH (identifying many features) rather than DEPTH (detailed requirements for any single feature)
+6. Present a summary of all captured features
+7. Signal completion
+
+## Guidelines
+- Be conversational and natural
+- DO NOT include greetings like "Hello!" or "Hi!" - you're continuing an existing conversation
+- **Ask only 1-2 questions per response** - don't overwhelm the user with long lists of questions
+- Ask questions to understand the full application scope
+- Think holistically about the application - what are all the major capabilities needed?
+- A "feature" is a discrete piece of functionality that delivers value to a specific user type
+- Features should be independent enough to be developed separately
+- Examples of features: "User Authentication", "Profile Management", "Search", "Notifications", "Payment Processing"
+- DO NOT dive deep into any single feature - that's what Phase 1 (Discovery) is for
+- DO NOT include decorative boxes or phase headers - the system handles those automatically
+- **IMPORTANT**: Before using any tool, always explain to the user what you're about to do
+
+## Creating Feature Stubs
+For each identified feature, create a stub document using the Write tool with this template:
+
+```markdown
+# Future Feature: [Feature Name]
+
+**Status**: Discovered during application planning
+
+## Brief Description
+[2-3 sentence description of what this feature does]
+
+## Target Users
+[Who will use this feature]
+
+## Core Value
+[What problem does this solve or what value does it deliver]
+
+## Potential Scope
+[High-level list of capabilities this feature might include - 3-5 bullet points]
+
+## Dependencies
+[Any obvious dependencies on other features, if known]
+
+## Notes
+[Any additional context or considerations]
+
+---
+**Discovered**: [Current date]
+*This is a placeholder document created by the Feature Breakdown Agent.*
+*Run the agent and select "Expand on an existing future-feature stub" to develop this feature in detail.*
+```
+
+Save each stub as: `{future_features_directory}/{feature_name_slug}.md`
+
+## Identifying Features
+When analyzing the application description, look for:
+- Different user types or personas (each may need separate features)
+- Different problem domains (authentication vs content management vs analytics)
+- Different user workflows (onboarding vs daily use vs administration)
+- Core capabilities that could be built independently
+- Features that might be optional or could be added incrementally
+
+## Phase Completion
+After creating all feature stubs:
+1. Present a summary list of all captured features
+2. Ask the user if they want to add any other features they thought of
+3. When the user is satisfied, respond with ONLY the text "FEATURE_DISCOVERY_COMPLETE" on its own line
+4. DO NOT include any additional text, transition messages, or mention of next steps
+5. DO NOT ask about specific actions - the system will present options to the user
+
+## Important
+- Use the Write tool to create each feature stub file
+- Create all files in: {future_features_directory}
+- Focus on identifying as many discrete features as possible
+- Keep descriptions brief - details will be fleshed out later in Phase 1
+- Ensure each feature is truly discrete (not just a sub-component of another feature)"""
+
+
 PHASE_0_SYSTEM_PROMPT = """You are a Product Requirements specialist helping to break down features into implementable increments.
 
 You are currently in **Phase 0: Context Gathering**.
 
+## Project Context
+The user's project is located at: `{project_directory}`
+
 ## Your Task
-1. Ask the user where their feature documentation is located (default: "./features/")
-2. Search for existing feature documentation files (*.md) in that directory using the Glob tool
-3. Read the relevant feature files using the Read tool to understand the existing system
-4. Summarize what you learned about existing features
+1. Check if a "features/" subdirectory exists within the project folder at `{project_directory}/features/`
+2. Handle different scenarios:
+   - **If features/ exists and has .md files**: Search and read them to understand the existing system
+   - **If features/ doesn't exist**: Ask if this is a new project or if there's a features folder elsewhere
+     - If new project: Inform them you'll create a features/ folder
+     - If features folder exists elsewhere: Ask for the path and use that
+   - **If features/ exists but is empty (no .md files)**: Ask if this is a new project and confirm the use of this features/ folder
+4. Summarize what you learned (or note that this is a new project with no existing features)
 5. Signal completion so the user can choose their next action
 
 ## Guidelines
+- Use the Glob tool to check for directories and files
 - Use the Read tool to read markdown files
-- Use the Glob tool to search for *.md files in directories
+- Use the Write tool to create the features/ directory if needed for a new project
 - Be conversational and natural
 - Provide clear summaries of what you find
-- If no feature docs exist, that's fine - note it and proceed
+- For new projects, be encouraging and explain that starting with Feature Discovery is a great way to identify all features
 - DO NOT include decorative boxes or phase headers (like ━━━ Phase 1 ━━━) - the system handles those automatically
-- **IMPORTANT**: Before using any tool, always explain to the user what you're about to do (e.g., "Let me search for existing feature documentation..." before using Glob)
+- **IMPORTANT**: Before using any tool, always explain to the user what you're about to do
 
-## Context Awareness
+## Handling New Projects
+When you determine this is a new project (no features/ or empty features/):
+1. Confirm with the user: "This looks like a new project. Shall I create a features/ folder at {project_directory}/features/?"
+2. Wait for confirmation
+3. If confirmed, use Write tool to create a placeholder file at `{project_directory}/features/.gitkeep` (this creates the directory)
+4. Inform the user that starting with "Discover application features" is recommended for new projects
+
+## Context Awareness (for existing projects)
 - Look for patterns in existing features
 - Note architectural decisions
 - Identify common dependencies
 - Understand the system's scope
 
 ## Phase Completion
-IMPORTANT: After summarizing existing features:
+IMPORTANT: After completing context gathering:
 - Ask the user if they're ready to continue: "Ready to continue?"
 - WAIT for the user's response (e.g., "yes", "ready", "let's go")
 - DO NOT output "PHASE_0_COMPLETE" until AFTER the user confirms
@@ -79,11 +178,12 @@ You are currently in **Phase 1: Discovery**.
 
 ## Guidelines
 - Be conversational and engaging
-- Ask one question at a time for better flow
+- DO NOT include greetings like "Hello!" or "Hi!" - you're continuing an existing conversation from Phase 0
+- **Ask only 1-2 questions per response** - don't overwhelm the user with long lists of questions
 - Build on previous answers with follow-up questions
 - Show that you're listening by referencing earlier responses
 - Don't just check boxes - dig deeper when answers are vague
-- Count your questions to ensure you ask at least 5 substantive ones
+- Count your questions to ensure you ask at least 5 substantive ones throughout the conversation
 - DO NOT include decorative boxes or phase headers (like ━━━ Phase 1 ━━━) - the system handles those automatically
 - **IMPORTANT**: Before using any tool, always explain to the user what you're about to do (e.g., "Let me create a feature summary document..." before using Write)
 
@@ -273,6 +373,7 @@ The next phase will handle its own introduction.
 - Reference existing and future features when identifying dependencies
 - Future features directory: `{future_features_directory}`
 - DO NOT include decorative boxes or phase headers - the system handles those automatically
+- DO NOT include greetings like "Hello!" or "Hi!" - you're continuing from Phase 1
 - Aim for 2-8 increments (fewer for simple features, more for complex ones)
 - Each increment should be achievable in a reasonable development effort
 - **IMPORTANT**: Before using any tool, always explain to the user what you're about to do (e.g., "Let me read the feature summary..." before using Read)"""
@@ -361,7 +462,8 @@ DO NOT include any additional text or transition messages after this signal.
 - Existing features context from Phase 0 is available
 - Future features captured in Phases 1 and 2 are available
 - Use the Write tool to create each prompt file
-- Create the prompts directory structure if it doesn't exist"""
+- Create the prompts directory structure if it doesn't exist
+- DO NOT include greetings like "Hello!" or "Hi!" - you're continuing from Phase 2"""
 
 
 async def run_phase_0() -> tuple[str, str]:
@@ -376,59 +478,139 @@ async def run_phase_0() -> tuple[str, str]:
     # Display phase header
     print_phase_header(0, "Context Gathering")
 
-    features_directory = None
+    project_directory = None
     existing_features_context = ""
 
     # Initialize user input handler
     user_input_handler = UserInput()
 
-    # Configure agent options for Phase 0
+    # Get current working directory
+    import os
+    current_dir = os.getcwd()
+
+    # Show the user what directory we'll use
+    print_agent_message("Hello! Let's start by understanding your project.")
+    console.print()
+    print_info(f"Project folder: {current_dir}")
+    console.print("       Is this correct? (Press Enter to confirm, or type a different path)")
+    console.print()
+
+    user_input = await user_input_handler.get_input("You: ")
+
+    if user_input.lower() in ['exit', 'quit']:
+        console.print("\n[info]Exiting Feature Breakdown Agent. Goodbye![/info]")
+        return None, None
+
+    # Store the project directory - use current dir if user just pressed Enter
+    if not user_input:
+        project_directory = "."
+    else:
+        project_directory = user_input.rstrip('/')
+        if not project_directory:
+            project_directory = "."
+
+    # Now configure agent options with the project directory injected
+    phase_0_prompt = PHASE_0_SYSTEM_PROMPT.replace("{project_directory}", project_directory)
+
     options = ClaudeAgentOptions(
-        system_prompt=PHASE_0_SYSTEM_PROMPT,
-        allowed_tools=["Read", "Glob", "Grep"],
-        permission_mode="acceptEdits",  # Auto-accept file reads
+        system_prompt=phase_0_prompt,
+        allowed_tools=["Read", "Glob", "Grep", "Write"],  # Added Write for creating features/ directory
+        permission_mode="acceptEdits",  # Auto-accept file operations
     )
 
     # Use ClaudeSDKClient for stateful conversation
     async with ClaudeSDKClient(options=options) as client:
-        # Initial agent greeting
-        print_agent_message("Hello! Let's start by understanding your existing codebase.")
-        console.print("       Where is your feature documentation located?")
-        print_info("(Press Enter for default: './features/')")
+        # Initial query to start Phase 0
+        initial_prompt = f"""The user wants to work on their project located at: {project_directory}
+
+Please:
+1. Check if there's a "features/" subdirectory in the project folder using the Glob tool
+2. Handle the scenario appropriately:
+   - If features/ exists and has .md files: Read them and summarize existing features
+   - If features/ doesn't exist: Ask if this is a new project or if features are stored elsewhere
+   - If features/ exists but is empty: Ask if this is a new project and confirm the use of this folder
+3. For new projects, you can create a features/ folder when confirmed
+4. After understanding the project context, ask if they're ready to continue"""
+
+        await client.query(initial_prompt)
+
         console.print()
 
-        first_message = True
+        response_text = ""
+        first_block = True
+        displayed_text = False
+        phase_complete = False
 
+        # Collect and display initial response as it arrives
+        async for message in client.receive_response():
+            message_class = type(message).__name__
+
+            if message_class == "AssistantMessage":
+                if hasattr(message, 'content'):
+                    for block in message.content:
+                        block_type = type(block).__name__
+                        if block_type == "TextBlock":
+                            # Check if this block contains the completion signal
+                            if "PHASE_0_COMPLETE" in block.text:
+                                phase_complete = True
+                                response_text += block.text
+                                # Don't display completion signal text
+                                continue
+
+                            # Display agent label before first content
+                            if first_block:
+                                console.print("[agent]Agent:[/agent]")
+                                console.print()
+                                first_block = False
+
+                            # Add spacing before subsequent text blocks
+                            if displayed_text:
+                                console.print()
+
+                            # Display text immediately as it arrives
+                            print_agent_message_streaming(block.text)
+                            response_text += block.text
+                            displayed_text = True
+                        elif block_type == "ToolUseBlock":
+                            tool_name = getattr(block, 'name', 'unknown')
+                            print_tool_usage(tool_name)
+                            console.print()
+            elif message_class == "ResultMessage":
+                break
+
+        # Add spacing after response (only if we displayed something)
+        if displayed_text:
+            console.print()
+
+        # Store context for Phase 1
+        existing_features_context += response_text + "\n"
+
+        # Check if phase completed immediately
+        if phase_complete:
+            print_phase_complete(0, "Context Gathering")
+            # Construct features_directory from project_directory
+            import os
+            if project_directory:
+                features_directory = os.path.join(project_directory, "features")
+            else:
+                # Fallback to default if somehow not set
+                features_directory = "./features"
+            return features_directory, existing_features_context
+
+        # Conversation loop
         while True:
             try:
                 user_input = await user_input_handler.get_input("You: ")
 
                 if not user_input:
-                    # Use default
-                    user_input = "./features/"
+                    print_info("Please provide a response.")
+                    continue
 
                 if user_input.lower() in ['exit', 'quit']:
                     console.print("\n[info]Exiting Feature Breakdown Agent. Goodbye![/info]")
                     return None, None
 
-                # Build conversation context for first message
-                if first_message:
-                    # Store the features directory for later phases
-                    features_directory = user_input
-
-                    # First message - add context about what we're doing
-                    prompt = f"""The user wants to break down a new feature. First, let's gather context about their existing features.
-
-The user says their feature documentation is located at: {user_input}
-
-Please:
-1. Use the Glob tool to search for *.md files in that directory
-2. Read the feature documentation files you find
-3. Summarize what existing features they have
-4. Ask if they're ready to proceed to Phase 1 (Discovery) for their new feature"""
-                    first_message = False
-                else:
-                    prompt = user_input
+                prompt = user_input
 
                 # Send query to agent
                 await client.query(prompt)
@@ -488,7 +670,206 @@ Please:
                 # Check if phase is complete
                 if phase_complete:
                     print_phase_complete(0, "Context Gathering")
+                    # Construct features_directory from project_directory
+                    import os
+                    if project_directory:
+                        features_directory = os.path.join(project_directory, "features")
+                    else:
+                        # Fallback to default if somehow not set
+                        features_directory = "./features"
                     return features_directory, existing_features_context
+
+            except KeyboardInterrupt:
+                console.print("\n")
+                print_info("Interrupted. Type 'exit' to quit.")
+                continue
+            except Exception as e:
+                console.print("\n")
+                print_error(str(e))
+                import traceback
+                traceback.print_exc()
+                print_info("Please try again or type 'exit' to quit.")
+
+
+async def run_feature_discovery_phase(future_features_directory: str) -> tuple[bool, list[str]]:
+    """Run Feature Discovery Phase: Identify discrete features from high-level app description.
+
+    Args:
+        future_features_directory: Path to save future feature stubs
+
+    Returns:
+        tuple: (success: bool, discovered_features: list[str])
+            - success: True if phase completed successfully, False if user exited
+            - discovered_features: List of feature file paths created
+    """
+    # Display phase header
+    from .display import print_phase_header, print_phase_complete
+    print_phase_header("FD", "Feature Discovery")
+
+    # Track discovered features during this phase
+    discovered_features = []
+
+    # Initialize user input handler
+    user_input_handler = UserInput()
+
+    # Configure agent options for Feature Discovery
+    # Inject directory path into the system prompt
+    discovery_prompt = FEATURE_DISCOVERY_SYSTEM_PROMPT.replace("{future_features_directory}", future_features_directory)
+
+    options = ClaudeAgentOptions(
+        system_prompt=discovery_prompt,
+        allowed_tools=["Write"],
+        permission_mode="acceptEdits",  # Auto-accept file writes
+    )
+
+    # Use ClaudeSDKClient for stateful conversation
+    async with ClaudeSDKClient(options=options) as client:
+        # Initial context for Feature Discovery
+        initial_prompt = """The user has selected Feature Discovery to identify discrete features for their application.
+
+You are continuing a conversation from Phase 0, so DO NOT include greetings or re-introduce yourself.
+
+Start by asking them to describe their application at a high level, then help them identify as many discrete features as possible. Create a stub document for each feature in the future-features directory.
+
+Remember: Focus on BREADTH (many features) not DEPTH (detailed requirements). Details will come later when they expand on each feature."""
+
+        await client.query(initial_prompt)
+
+        response_text = ""
+        first_block = True
+        displayed_text = False
+        phase_complete = False
+
+        # Collect and display initial response as it arrives
+        async for message in client.receive_response():
+            message_class = type(message).__name__
+
+            if message_class == "AssistantMessage":
+                if hasattr(message, 'content'):
+                    for block in message.content:
+                        block_type = type(block).__name__
+                        if block_type == "TextBlock":
+                            # Check if this block contains the completion signal
+                            if "FEATURE_DISCOVERY_COMPLETE" in block.text:
+                                phase_complete = True
+                                response_text += block.text
+                                # Don't display completion signal text
+                                continue
+
+                            # Display agent label before first content
+                            if first_block:
+                                console.print("[agent]Agent:[/agent]")
+                                console.print()
+                                first_block = False
+
+                            # Add spacing before subsequent text blocks
+                            if displayed_text:
+                                console.print()
+
+                            # Display text immediately as it arrives
+                            print_agent_message_streaming(block.text)
+                            response_text += block.text
+                            displayed_text = True
+                        elif block_type == "ToolUseBlock":
+                            tool_name = getattr(block, 'name', 'unknown')
+                            print_tool_usage(tool_name)
+
+                            # Track feature file writes
+                            if tool_name == "Write":
+                                if hasattr(block, 'input') and 'file_path' in block.input:
+                                    file_path = block.input['file_path']
+                                    if future_features_directory in file_path:
+                                        discovered_features.append(file_path)
+                                        console.print(" [success](Feature stub created)[/success]")
+                            console.print()
+            elif message_class == "ResultMessage":
+                break
+
+        # Add spacing after response
+        if response_text:
+            console.print()
+
+        # Check if phase completed immediately
+        if phase_complete:
+            print_phase_complete("FD", "Feature Discovery", f"Discovered {len(discovered_features)} feature(s)")
+            return True, discovered_features
+
+        # Conversation loop
+        while True:
+            try:
+                user_input = await user_input_handler.get_input("You: ")
+
+                if not user_input:
+                    print_info("Please provide a response.")
+                    continue
+
+                if user_input.lower() in ['exit', 'quit']:
+                    console.print("\n[info]Returning to menu...[/info]")
+                    return False, []
+
+                # Send user input to agent
+                await client.query(user_input)
+
+                console.print()
+
+                response_text = ""
+                first_block = True
+                displayed_text = False
+                phase_complete = False
+
+                # Collect and display response from agent as it arrives
+                async for message in client.receive_response():
+                    message_class = type(message).__name__
+
+                    if message_class == "AssistantMessage":
+                        if hasattr(message, 'content'):
+                            for block in message.content:
+                                block_type = type(block).__name__
+                                if block_type == "TextBlock":
+                                    # Check if this block contains the completion signal
+                                    if "FEATURE_DISCOVERY_COMPLETE" in block.text:
+                                        phase_complete = True
+                                        response_text += block.text
+                                        # Don't display completion signal text
+                                        continue
+
+                                    # Display agent label before first content
+                                    if first_block:
+                                        console.print("[agent]Agent:[/agent]")
+                                        console.print()
+                                        first_block = False
+
+                                    # Add spacing before subsequent text blocks
+                                    if displayed_text:
+                                        console.print()
+
+                                    # Display text immediately as it arrives
+                                    print_agent_message_streaming(block.text)
+                                    response_text += block.text
+                                    displayed_text = True
+                                elif block_type == "ToolUseBlock":
+                                    tool_name = getattr(block, 'name', 'unknown')
+                                    print_tool_usage(tool_name)
+
+                                    # Track feature file writes
+                                    if tool_name == "Write":
+                                        if hasattr(block, 'input') and 'file_path' in block.input:
+                                            file_path = block.input['file_path']
+                                            if future_features_directory in file_path:
+                                                discovered_features.append(file_path)
+                                                console.print(" [success](Feature stub created)[/success]")
+                                    console.print()
+                    elif message_class == "ResultMessage":
+                        break
+
+                # Add spacing after response (only if we displayed something)
+                if displayed_text:
+                    console.print()
+
+                # Check if phase is complete
+                if phase_complete:
+                    print_phase_complete("FD", "Feature Discovery", f"Discovered {len(discovered_features)} feature(s)")
+                    return True, discovered_features
 
             except KeyboardInterrupt:
                 console.print("\n")
@@ -511,8 +892,8 @@ async def get_user_action_choice(features_directory: str, future_features_direct
 
     Returns:
         tuple: (action: str, selected_file: str | None)
-            - action: One of "new", "expand", "continue", or "exit"
-            - selected_file: Path to selected file for "expand" or "continue", None for "new"
+            - action: One of "discover", "new", "expand", "continue", or "exit"
+            - selected_file: Path to selected file for "expand" or "continue", None for "discover" or "new"
     """
     from pathlib import Path
 
@@ -521,10 +902,11 @@ async def get_user_action_choice(features_directory: str, future_features_direct
     console.print()
     console.print("[agent]How would you like to proceed?[/agent]")
     console.print()
-    console.print("  [bold]1.[/bold] Define a new feature")
-    console.print("  [bold]2.[/bold] Expand on an existing future-feature stub")
-    console.print("  [bold]3.[/bold] Continue with an existing feature")
-    console.print("  [bold]4.[/bold] Exit")
+    console.print("  [bold]1.[/bold] Discover application features (create multiple feature stubs)")
+    console.print("  [bold]2.[/bold] Define a new feature")
+    console.print("  [bold]3.[/bold] Expand on an existing future-feature stub")
+    console.print("  [bold]4.[/bold] Continue with an existing feature")
+    console.print("  [bold]5.[/bold] Exit")
     console.print()
     console.print("[info]═══════════════════════════════════════════════════════════════[/info]")
     console.print()
@@ -533,16 +915,19 @@ async def get_user_action_choice(features_directory: str, future_features_direct
 
     while True:
         try:
-            choice = await user_input_handler.get_input("Enter your choice (1-4): ")
+            choice = await user_input_handler.get_input("Enter your choice (1-5): ")
             choice = choice.strip()
 
-            if choice.lower() in ['exit', 'quit'] or choice == "4":
+            if choice.lower() in ['exit', 'quit'] or choice == "5":
                 return "exit", None
 
             if choice == "1":
-                return "new", None
+                return "discover", None
 
             elif choice == "2":
+                return "new", None
+
+            elif choice == "3":
                 # List available future-features
                 future_features_path = Path(future_features_directory)
                 if not future_features_path.exists():
@@ -588,7 +973,7 @@ async def get_user_action_choice(features_directory: str, future_features_direct
                     console.print()
                     continue
 
-            elif choice == "3":
+            elif choice == "4":
                 # Find incomplete features
                 incomplete_features = find_incomplete_features(features_directory)
 
@@ -628,7 +1013,7 @@ async def get_user_action_choice(features_directory: str, future_features_direct
                     console.print()
                     continue
             else:
-                print_error("Invalid choice. Please enter 1-4.")
+                print_error("Invalid choice. Please enter 1-5.")
                 console.print()
                 continue
 
@@ -781,6 +1166,8 @@ Future features will be saved to: {future_features_directory}
 
 Now let's start Phase 1 (Discovery). The user has selected a future-feature stub to expand on.
 
+You are continuing a conversation from Phase 0, so DO NOT include greetings or re-introduce yourself.
+
 Here's the content of the future-feature stub:
 
 {initial_feature_context}
@@ -796,7 +1183,9 @@ Here's what we learned about existing features:
 The features are located in: {features_directory}
 Future features will be saved to: {future_features_directory}
 
-Now let's start Phase 1 (Discovery). Please ask the user to describe the new feature they want to build, then ask clarifying questions to understand it deeply."""
+Now let's start Phase 1 (Discovery). You are continuing a conversation from Phase 0, so DO NOT include greetings or re-introduce yourself.
+
+Please ask the user to describe the new feature they want to build, then ask clarifying questions to understand it deeply."""
 
         await client.query(initial_prompt)
 
@@ -1019,7 +1408,7 @@ Here's what we know from earlier phases:
 
 Future features directory: {future_features_directory}
 
-Now let's start Phase 2 (Incremental Grouping).
+Now let's start Phase 2 (Incremental Grouping). You are continuing a conversation from Phase 1, so DO NOT include greetings.
 
 Please:
 1. Read the feature summary file to understand what needs to be built
@@ -1256,7 +1645,7 @@ Here's what we know from earlier phases:
 {existing_features_context}
 {future_features_context}
 
-Now let's start Phase 3 (Prompt Generation).
+Now let's start Phase 3 (Prompt Generation). You are continuing a conversation from Phase 2, so DO NOT include greetings.
 
 Please:
 1. Read the feature summary file to refresh your understanding
@@ -1439,7 +1828,24 @@ async def run_all_phases():
         resume_phase = 1
 
         # Handle different action paths
-        if action == "new":
+        if action == "discover":
+            # Run Feature Discovery Phase to identify and create multiple feature stubs
+            discovery_success, discovered_features = await run_feature_discovery_phase(future_features_directory)
+
+            if not discovery_success:
+                continue  # Go back to action choice menu
+
+            # Display discovered features
+            if discovered_features:
+                print_captured_features(discovered_features)
+                console.print()
+                print_info("You can now select 'Expand on an existing future-feature stub' to develop any of these features.")
+                console.print()
+
+            # Loop back to action choice menu
+            continue
+
+        elif action == "new":
             # Continue with normal flow starting at Phase 1
             resume_phase = 1
 
