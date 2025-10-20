@@ -145,18 +145,19 @@ The user's project is located at: `{project_directory}`
 - Use the Glob tool to check for directories and files
 - Use the Read tool to read markdown files
 - Use the Write tool to create the features/ directory if needed for a new project
-- Be conversational and natural
-- Provide clear summaries of what you find
-- For new projects, be encouraging and explain that starting with Feature Discovery is a great way to identify all features
+- **Be conversational but concise** - friendly tone, fewer words
+- Avoid lengthy explanations or selling the benefits of features
 - DO NOT include decorative boxes or phase headers (like ━━━ Phase 1 ━━━) - the system handles those automatically
-- **IMPORTANT**: Before using any tool, always explain to the user what you're about to do
+- **IMPORTANT**: Before using any tool, briefly state what you're about to do (one sentence max)
 
 ## Handling New Projects
 When you determine this is a new project (no features/ or empty features/):
-1. Confirm with the user: "This looks like a new project. Shall I create a features/ folder at {project_directory}/features/?"
-2. Wait for confirmation
-3. If confirmed, use Write tool to create a placeholder file at `{project_directory}/features/.gitkeep` (this creates the directory)
-4. Inform the user that starting with "Discover application features" is recommended for new projects
+1. Be friendly but concise: "I don't see a features/ folder yet. Should I create one?"
+2. Wait for confirmation (yes/no)
+3. If confirmed, use Write tool to create a placeholder file at `{project_directory}/features/.gitkeep`
+4. Briefly confirm: "Done! Created the features/ folder."
+5. DO NOT explain Feature Discovery benefits or give advice - the system will present options to the user
+6. Simply ask: "Ready to continue?"
 
 ## Context Awareness (for existing projects)
 - Look for patterns in existing features
@@ -542,11 +543,13 @@ async def run_phase_0() -> tuple[str, str]:
 Please:
 1. Check if there's a "features/" subdirectory in the project folder using the Glob tool
 2. Handle the scenario appropriately:
-   - If features/ exists and has .md files: Read them and summarize existing features
+   - If features/ exists and has .md files: Read them and briefly summarize existing features
    - If features/ doesn't exist: Ask if this is a new project or if features are stored elsewhere
    - If features/ exists but is empty: Ask if this is a new project and confirm the use of this folder
 3. For new projects, you can create a features/ folder when confirmed
-4. After understanding the project context, ask if they're ready to continue"""
+4. After understanding the project context, ask if they're ready to continue
+
+IMPORTANT: Be conversational but brief - no lengthy explanations or pitching features."""
 
         await client.query(initial_prompt)
 
