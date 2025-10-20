@@ -213,6 +213,20 @@ Does this incremental structure work for you, or would you like me to adjust the
 - Be flexible but ensure vertical slice principles are maintained
 - Explain reasoning if a user's request would violate vertical slice principles
 
+## Capturing Future Features During Grouping
+Sometimes during incremental grouping, you or the user may realize that a proposed increment is actually too large or different in scope to be part of the current feature. When this happens:
+
+1. **Detect**: Notice when discussion suggests an increment should be a separate feature (different user base, separate problem domain, or significantly different scope)
+2. **Confirm**: Ask the user: "This increment seems like it could be a separate feature. Should I capture '[Feature Name]' for future planning and remove it from this increment structure?"
+3. **If user confirms it's a separate feature**:
+   - Create a minimal placeholder document using the Write tool
+   - Save as: `{future_features_directory}/{feature_name_slug}.md`
+   - Use the same template as Phase 1 (include brief description, context about being mentioned during Phase 2 grouping, initial notes)
+   - Remove that increment from the current feature's structure
+   - Regroup the remaining functionality if needed
+4. **Refocus**: After capturing, present the revised increment structure
+5. **Reference when relevant**: If captured features relate to the current feature, note them as potential future dependencies
+
 ## Completion Signal
 Once the user approves the increment structure, respond with "PHASE_2_COMPLETE" on its own line to signal completion.
 
@@ -222,7 +236,9 @@ Once the user approves the increment structure, respond with "PHASE_2_COMPLETE" 
   - Existing features context from Phase 0
   - Any captured future features from Phase 1
 - Use the Read tool to read the feature summary file
+- Use the Write tool to create future feature placeholders
 - Reference existing and future features when identifying dependencies
+- Future features directory: `{future_features_directory}`
 - DO NOT include decorative boxes or phase headers - the system handles those automatically
 - Aim for 2-8 increments (fewer for simple features, more for complex ones)
 - Each increment should be achievable in a reasonable development effort
@@ -530,19 +546,25 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
                 print_info("Please try again or type 'exit' to quit.")
 
 
-async def run_phase_2(features_directory: str, existing_features_context: str, captured_future_features: list[str]) -> bool:
+async def run_phase_2(features_directory: str, existing_features_context: str, captured_future_features_phase1: list[str], future_features_directory: str) -> tuple[bool, list[str]]:
     """Run Phase 2: Incremental Grouping.
 
     Args:
         features_directory: Path to features directory
         existing_features_context: Summary of existing features from Phase 0
-        captured_future_features: List of future feature file paths from Phase 1
+        captured_future_features_phase1: List of future feature file paths from Phase 1
+        future_features_directory: Path to save future feature placeholders
 
     Returns:
-        bool: True if phase completed successfully, False if user exited
+        tuple: (success: bool, captured_future_features: list[str])
+            - success: True if phase completed successfully, False if user exited
+            - captured_future_features: List of future feature file paths created during Phase 2
     """
     # Display phase header
     print_phase_header(2, "Incremental Grouping")
+
+    # Track captured future features during this phase
+    captured_future_features_phase2 = []
 
     # Initialize user input handler
     user_input_handler = UserInput()
@@ -557,7 +579,7 @@ async def run_phase_2(features_directory: str, existing_features_context: str, c
     feature_files = list(Path(features_directory).glob("*.md"))
     if not feature_files:
         print_error("No feature summary file found. Cannot proceed to Phase 2.")
-        return False
+        return False, []
 
     # Get the most recent feature file
     latest_feature_file = max(feature_files, key=lambda p: p.stat().st_mtime)
@@ -566,10 +588,11 @@ async def run_phase_2(features_directory: str, existing_features_context: str, c
     # Inject paths into the system prompt
     phase_2_prompt = PHASE_2_SYSTEM_PROMPT.replace("{features_directory}", features_directory)
     phase_2_prompt = phase_2_prompt.replace("{feature_name_slug}", feature_name_slug)
+    phase_2_prompt = phase_2_prompt.replace("{future_features_directory}", future_features_directory)
 
     options = ClaudeAgentOptions(
         system_prompt=phase_2_prompt,
-        allowed_tools=["Read", "Glob", "Grep"],
+        allowed_tools=["Read", "Glob", "Grep", "Write"],
         permission_mode="acceptEdits",
     )
 
@@ -577,9 +600,9 @@ async def run_phase_2(features_directory: str, existing_features_context: str, c
     async with ClaudeSDKClient(options=options) as client:
         # Build context about captured future features
         future_features_context = ""
-        if captured_future_features:
+        if captured_future_features_phase1:
             future_features_context = f"\n\nCaptured future features from Phase 1:\n"
-            for feature_path in captured_future_features:
+            for feature_path in captured_future_features_phase1:
                 future_features_context += f"- {feature_path}\n"
 
         # Initial context for Phase 2
@@ -593,6 +616,8 @@ Here's what we know from earlier phases:
 {existing_features_context}
 {future_features_context}
 
+Future features directory: {future_features_directory}
+
 Now let's start Phase 2 (Incremental Grouping).
 
 Please:
@@ -602,7 +627,7 @@ Please:
 4. Identify dependencies on existing features and between increments
 5. Present your proposed increment structure for my review
 
-Remember: Each increment must be independently testable and deliver clear user value."""
+Remember: Each increment must be independently testable and deliver clear user value. If during our discussion you notice that a proposed increment should really be a separate feature, ask me if we should capture it for future planning."""
 
         await client.query(initial_prompt)
 
@@ -636,6 +661,15 @@ Remember: Each increment must be independently testable and deliver clear user v
                         elif block_type == "ToolUseBlock":
                             tool_name = getattr(block, 'name', 'unknown')
                             print_tool_usage(tool_name)
+
+                            # Track future feature file writes
+                            if tool_name == "Write":
+                                # Check if this is a future feature file
+                                if hasattr(block, 'input') and 'file_path' in block.input:
+                                    file_path = block.input['file_path']
+                                    if future_features_directory in file_path:
+                                        captured_future_features_phase2.append(file_path)
+                                        console.print(" [success](Future feature captured)[/success]")
                             console.print()
             elif message_class == "ResultMessage":
                 break
@@ -655,7 +689,7 @@ Remember: Each increment must be independently testable and deliver clear user v
 
                 if user_input.lower() in ['exit', 'quit']:
                     console.print("\n[info]Exiting Feature Breakdown Agent. Goodbye![/info]")
-                    return False
+                    return False, []
 
                 # Send user input to agent
                 await client.query(user_input)
@@ -692,6 +726,15 @@ Remember: Each increment must be independently testable and deliver clear user v
                                 elif block_type == "ToolUseBlock":
                                     tool_name = getattr(block, 'name', 'unknown')
                                     print_tool_usage(tool_name)
+
+                                    # Track future feature file writes
+                                    if tool_name == "Write":
+                                        # Check if this is a future feature file
+                                        if hasattr(block, 'input') and 'file_path' in block.input:
+                                            file_path = block.input['file_path']
+                                            if future_features_directory in file_path:
+                                                captured_future_features_phase2.append(file_path)
+                                                console.print(" [success](Future feature captured)[/success]")
                                     console.print()
                     elif message_class == "ResultMessage":
                         break
@@ -702,8 +745,11 @@ Remember: Each increment must be independently testable and deliver clear user v
 
                 # Check if phase is complete
                 if "PHASE_2_COMPLETE" in response_text:
-                    print_phase_complete(2, "Incremental Grouping")
-                    return True
+                    extra_info = None
+                    if captured_future_features_phase2:
+                        extra_info = f"Captured {len(captured_future_features_phase2)} future feature(s) during grouping"
+                    print_phase_complete(2, "Incremental Grouping", extra_info)
+                    return True, captured_future_features_phase2
 
             except KeyboardInterrupt:
                 console.print("\n")
@@ -746,21 +792,30 @@ async def run_all_phases():
     if not phase_1_success:
         return  # User exited
 
-    # Display captured future features if any
+    # Display captured future features if any from Phase 1
     if captured_future_features:
         print_captured_features(captured_future_features)
 
     # Phase 2: Incremental Grouping
-    phase_2_success = await run_phase_2(
+    phase_2_success, captured_future_features_phase2 = await run_phase_2(
         features_directory,
         existing_features_context,
-        captured_future_features
+        captured_future_features,
+        future_features_directory
     )
 
     if not phase_2_success:
         return  # User exited
 
+    # Display captured future features from Phase 2 if any
+    if captured_future_features_phase2:
+        print_captured_features(captured_future_features_phase2)
+
+    # Combine all captured future features for Phase 3
+    all_captured_future_features = captured_future_features + captured_future_features_phase2
+
     # TODO: Phase 3 to be implemented
+    # When implementing, pass all_captured_future_features to reference as dependencies
     console.print()
     print_info("(Phase 3 will be implemented next)")
     console.print()
