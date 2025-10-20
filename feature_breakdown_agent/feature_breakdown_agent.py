@@ -524,6 +524,7 @@ async def get_user_action_choice(features_directory: str, future_features_direct
     console.print("  [bold]1.[/bold] Define a new feature")
     console.print("  [bold]2.[/bold] Expand on an existing future-feature stub")
     console.print("  [bold]3.[/bold] Continue with an existing feature")
+    console.print("  [bold]4.[/bold] Exit")
     console.print()
     console.print("[info]═══════════════════════════════════════════════════════════════[/info]")
     console.print()
@@ -532,10 +533,10 @@ async def get_user_action_choice(features_directory: str, future_features_direct
 
     while True:
         try:
-            choice = await user_input_handler.get_input("Enter your choice (1-3): ")
+            choice = await user_input_handler.get_input("Enter your choice (1-4): ")
             choice = choice.strip()
 
-            if choice.lower() in ['exit', 'quit']:
+            if choice.lower() in ['exit', 'quit'] or choice == "4":
                 return "exit", None
 
             if choice == "1":
@@ -627,7 +628,7 @@ async def get_user_action_choice(features_directory: str, future_features_direct
                     console.print()
                     continue
             else:
-                print_error("Invalid choice. Please enter 1, 2, or 3.")
+                print_error("Invalid choice. Please enter 1-4.")
                 console.print()
                 continue
 
@@ -802,6 +803,7 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
         response_text = ""
         first_block = True
         displayed_text = False
+        phase_complete = False
 
         # Collect and display initial response as it arrives
         async for message in client.receive_response():
@@ -812,6 +814,13 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
                     for block in message.content:
                         block_type = type(block).__name__
                         if block_type == "TextBlock":
+                            # Check if this block contains the completion signal
+                            if "PHASE_1_COMPLETE" in block.text:
+                                phase_complete = True
+                                response_text += block.text
+                                # Don't display completion signal text
+                                continue
+
                             # Display agent label before first content
                             if first_block:
                                 console.print("[agent]Agent:[/agent]")
@@ -837,6 +846,14 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
         if response_text:
             console.print()
 
+        # Check if phase completed immediately
+        if phase_complete:
+            extra_info = None
+            if captured_future_features:
+                extra_info = f"Captured {len(captured_future_features)} future feature(s) for later planning"
+            print_phase_complete(1, "Discovery", extra_info)
+            return True, captured_future_features
+
         # Conversation loop
         while True:
             try:
@@ -847,7 +864,7 @@ Now let's start Phase 1 (Discovery). Please ask the user to describe the new fea
                     continue
 
                 if user_input.lower() in ['exit', 'quit']:
-                    console.print("\n[info]Exiting Feature Breakdown Agent. Goodbye![/info]")
+                    console.print("\n[info]Returning to menu...[/info]")
                     return False, []
 
                 # Send user input to agent
@@ -1018,6 +1035,7 @@ Remember: Each increment must be independently testable and deliver clear user v
         response_text = ""
         first_block = True
         displayed_text = False
+        phase_complete = False
 
         # Collect and display initial response as it arrives
         async for message in client.receive_response():
@@ -1028,6 +1046,13 @@ Remember: Each increment must be independently testable and deliver clear user v
                     for block in message.content:
                         block_type = type(block).__name__
                         if block_type == "TextBlock":
+                            # Check if this block contains the completion signal
+                            if "PHASE_2_COMPLETE" in block.text:
+                                phase_complete = True
+                                response_text += block.text
+                                # Don't display completion signal text
+                                continue
+
                             # Display agent label before first content
                             if first_block:
                                 console.print("[agent]Agent:[/agent]")
@@ -1062,6 +1087,14 @@ Remember: Each increment must be independently testable and deliver clear user v
         if response_text:
             console.print()
 
+        # Check if phase completed immediately
+        if phase_complete:
+            extra_info = None
+            if captured_future_features_phase2:
+                extra_info = f"Captured {len(captured_future_features_phase2)} future feature(s) during grouping"
+            print_phase_complete(2, "Incremental Grouping", extra_info)
+            return True, captured_future_features_phase2
+
         # Conversation loop
         while True:
             try:
@@ -1072,7 +1105,7 @@ Remember: Each increment must be independently testable and deliver clear user v
                     continue
 
                 if user_input.lower() in ['exit', 'quit']:
-                    console.print("\n[info]Exiting Feature Breakdown Agent. Goodbye![/info]")
+                    console.print("\n[info]Returning to menu...[/info]")
                     return False, []
 
                 # Send user input to agent
@@ -1240,6 +1273,7 @@ Remember to generate prompts sequentially (one at a time) so dependencies are cl
         response_text = ""
         first_block = True
         displayed_text = False
+        phase_complete = False
 
         # Collect and display initial response as it arrives
         async for message in client.receive_response():
@@ -1250,6 +1284,13 @@ Remember to generate prompts sequentially (one at a time) so dependencies are cl
                     for block in message.content:
                         block_type = type(block).__name__
                         if block_type == "TextBlock":
+                            # Check if this block contains the completion signal
+                            if "PHASE_3_COMPLETE" in block.text:
+                                phase_complete = True
+                                response_text += block.text
+                                # Don't display completion signal text
+                                continue
+
                             # Display agent label before first content
                             if first_block:
                                 console.print("[agent]Agent:[/agent]")
@@ -1275,6 +1316,11 @@ Remember to generate prompts sequentially (one at a time) so dependencies are cl
         if response_text:
             console.print()
 
+        # Check if phase completed immediately (agent did all work in first response)
+        if phase_complete:
+            print_phase_complete(3, "Prompt Generation")
+            return True
+
         # Conversation loop
         while True:
             try:
@@ -1285,7 +1331,7 @@ Remember to generate prompts sequentially (one at a time) so dependencies are cl
                     continue
 
                 if user_input.lower() in ['exit', 'quit']:
-                    console.print("\n[info]Exiting Feature Breakdown Agent. Goodbye![/info]")
+                    console.print("\n[info]Returning to menu...[/info]")
                     return False
 
                 # Send user input to agent
@@ -1377,105 +1423,109 @@ async def run_all_phases():
         features_parent = '.'
     future_features_directory = os.path.join(features_parent, 'future-features')
 
-    # Get user's choice of action
-    action, selected_file = await get_user_action_choice(features_directory, future_features_directory)
+    # Main workflow loop - allows user to work on multiple features in one session
+    while True:
+        # Get user's choice of action
+        action, selected_file = await get_user_action_choice(features_directory, future_features_directory)
 
-    if action == "exit":
-        console.print("\n[info]Exiting Feature Breakdown Agent. Goodbye![/info]")
-        return
-
-    # Initialize variables that will be used across phases
-    captured_future_features = []
-    captured_future_features_phase2 = []
-    initial_feature_context = None
-    resume_phase = 1
-
-    # Handle different action paths
-    if action == "new":
-        # Continue with normal flow starting at Phase 1
-        resume_phase = 1
-
-    elif action == "expand":
-        # Read the future-feature stub and pass it to Phase 1
-        try:
-            with open(selected_file, 'r') as f:
-                initial_feature_context = f.read()
-            console.print()
-            print_info(f"Expanding on future-feature: {Path(selected_file).stem}")
-            console.print()
-            resume_phase = 1
-        except Exception as e:
-            print_error(f"Failed to read future-feature file: {e}")
+        if action == "exit":
+            console.print("\n[info]Exiting Feature Breakdown Agent. Goodbye![/info]")
             return
 
-    elif action == "continue":
-        # Determine which phase to resume
-        feature_slug = selected_file  # In this case, selected_file is the feature slug
-        resume_phase = determine_resume_phase(features_directory, feature_slug)
+        # Initialize variables that will be used across phases
+        captured_future_features = []
+        captured_future_features_phase2 = []
+        initial_feature_context = None
+        resume_phase = 1
+
+        # Handle different action paths
+        if action == "new":
+            # Continue with normal flow starting at Phase 1
+            resume_phase = 1
+
+        elif action == "expand":
+            # Read the future-feature stub and pass it to Phase 1
+            try:
+                with open(selected_file, 'r') as f:
+                    initial_feature_context = f.read()
+                console.print()
+                print_info(f"Expanding on future-feature: {Path(selected_file).stem}")
+                console.print()
+                resume_phase = 1
+            except Exception as e:
+                print_error(f"Failed to read future-feature file: {e}")
+                continue  # Go back to action choice menu
+
+        elif action == "continue":
+            # Determine which phase to resume
+            feature_slug = selected_file  # In this case, selected_file is the feature slug
+            resume_phase = determine_resume_phase(features_directory, feature_slug)
+            console.print()
+            print_info(f"Continuing feature: {feature_slug}")
+            print_info(f"Resuming at Phase {resume_phase}")
+            console.print()
+
+        # Execute phases based on resume_phase
+        if resume_phase <= 1:
+            # Phase 1: Discovery
+            phase_1_success, captured_future_features = await run_phase_1(
+                features_directory,
+                existing_features_context,
+                future_features_directory,
+                initial_feature_context=initial_feature_context
+            )
+
+            if not phase_1_success:
+                continue  # Go back to action choice menu
+
+            # Display captured future features if any from Phase 1
+            if captured_future_features:
+                print_captured_features(captured_future_features)
+
+        if resume_phase <= 2:
+            # Phase 2: Incremental Grouping
+            phase_2_success, captured_future_features_phase2 = await run_phase_2(
+                features_directory,
+                existing_features_context,
+                captured_future_features,
+                future_features_directory
+            )
+
+            if not phase_2_success:
+                continue  # Go back to action choice menu
+
+            # Display captured future features from Phase 2 if any
+            if captured_future_features_phase2:
+                print_captured_features(captured_future_features_phase2)
+
+        # Combine all captured future features for Phase 3
+        all_captured_future_features = captured_future_features + captured_future_features_phase2
+
+        # Calculate prompts directory as sibling to features directory
+        # Examples:
+        #   "./features/" → "./prompts/"
+        #   "docs/features/" → "docs/prompts/"
+        #   "./features" → "./prompts/"
+        prompts_directory = os.path.join(features_parent, 'prompts')
+
+        if resume_phase <= 3:
+            # Phase 3: Prompt Generation
+            phase_3_success = await run_phase_3(
+                features_directory,
+                existing_features_context,
+                all_captured_future_features,
+                prompts_directory=prompts_directory
+            )
+
+            if not phase_3_success:
+                continue  # Go back to action choice menu
+
+        # All phases complete!
         console.print()
-        print_info(f"Continuing feature: {feature_slug}")
-        print_info(f"Resuming at Phase {resume_phase}")
+        console.print("[success]✨ All phases complete! Your feature prompts are ready to use. ✨[/success]")
         console.print()
 
-    # Execute phases based on resume_phase
-    if resume_phase <= 1:
-        # Phase 1: Discovery
-        phase_1_success, captured_future_features = await run_phase_1(
-            features_directory,
-            existing_features_context,
-            future_features_directory,
-            initial_feature_context=initial_feature_context
-        )
-
-        if not phase_1_success:
-            return  # User exited
-
-        # Display captured future features if any from Phase 1
-        if captured_future_features:
-            print_captured_features(captured_future_features)
-
-    if resume_phase <= 2:
-        # Phase 2: Incremental Grouping
-        phase_2_success, captured_future_features_phase2 = await run_phase_2(
-            features_directory,
-            existing_features_context,
-            captured_future_features,
-            future_features_directory
-        )
-
-        if not phase_2_success:
-            return  # User exited
-
-        # Display captured future features from Phase 2 if any
-        if captured_future_features_phase2:
-            print_captured_features(captured_future_features_phase2)
-
-    # Combine all captured future features for Phase 3
-    all_captured_future_features = captured_future_features + captured_future_features_phase2
-
-    # Calculate prompts directory as sibling to features directory
-    # Examples:
-    #   "./features/" → "./prompts/"
-    #   "docs/features/" → "docs/prompts/"
-    #   "./features" → "./prompts/"
-    prompts_directory = os.path.join(features_parent, 'prompts')
-
-    if resume_phase <= 3:
-        # Phase 3: Prompt Generation
-        phase_3_success = await run_phase_3(
-            features_directory,
-            existing_features_context,
-            all_captured_future_features,
-            prompts_directory=prompts_directory
-        )
-
-        if not phase_3_success:
-            return  # User exited
-
-    # All phases complete!
-    console.print()
-    console.print("[success]✨ All phases complete! Your feature prompts are ready to use. ✨[/success]")
-    console.print()
+        # Loop back to action choice menu for next feature
 
 
 def main():
