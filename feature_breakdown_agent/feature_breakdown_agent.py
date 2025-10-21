@@ -129,6 +129,7 @@ You are currently in **Phase 0: Context Gathering**.
 
 ## Project Context
 The user's project is located at: `{project_directory}`
+The user has already selected this folder, so you can start exploring immediately.
 
 ## Your Task
 1. Check if a "features/" subdirectory exists within the project folder at `{project_directory}/features/`
@@ -146,6 +147,7 @@ The user's project is located at: `{project_directory}`
 - Use the Read tool to read markdown files
 - Use the Write tool to create the features/ directory if needed for a new project
 - **Be conversational but concise** - friendly tone, fewer words
+- **DO NOT greet the user** - they've already been welcomed, just start working
 - Avoid lengthy explanations or selling the benefits of features
 - DO NOT include decorative boxes or phase headers (like ━━━ Phase 1 ━━━) - the system handles those automatically
 - **IMPORTANT**: Before using any tool, briefly state what you're about to do (one sentence max)
@@ -489,42 +491,63 @@ async def run_phase_0() -> tuple[str, str]:
     Returns:
         tuple: (features_directory, existing_features_context)
     """
+    import questionary
+
     # Display welcome banner
     print_welcome()
-
-    # Display phase header
-    print_phase_header("Context Gathering")
-
-    project_directory = None
-    existing_features_context = ""
-
-    # Initialize user input handler
-    user_input_handler = UserInput()
 
     # Get current working directory
     import os
     current_dir = os.getcwd()
 
+    # Initialize user input handler
+    user_input_handler = UserInput()
+
     # Show the user what directory we'll use
-    print_agent_message("Hello! Let's start by understanding your project.")
     console.print()
     print_info(f"Project folder: {current_dir}")
-    console.print("       Is this correct? (Press Enter to confirm, or type a different path)")
     console.print()
 
-    user_input = await user_input_handler.get_input("You: ")
+    # Ask user to confirm or specify different folder
+    folder_choice = await questionary.select(
+        "Would you like to use this folder?",
+        choices=[
+            "Use this folder",
+            "Specify a different folder"
+        ],
+        style=questionary.Style([
+            ('qmark', 'fg:#00d4aa bold'),
+            ('question', 'fg:#00d4aa bold'),
+            ('answer', 'fg:#00d4aa'),
+            ('pointer', 'fg:#00d4aa bold'),
+            ('highlighted', 'fg:#00d4aa bold'),
+            ('selected', 'fg:#00d4aa'),
+        ])
+    ).ask_async()
 
-    if user_input.lower() in ['exit', 'quit']:
+    if folder_choice is None:
         console.print("\n[info]Exiting Feature Breakdown Agent. Goodbye![/info]")
         return None, None
 
-    # Store the project directory - use current dir if user just pressed Enter
-    if not user_input:
+    if folder_choice == "Use this folder":
         project_directory = "."
     else:
-        project_directory = user_input.rstrip('/')
+        # User wants to specify a different folder
+        console.print()
+        user_input = await user_input_handler.get_input("Enter project folder path: ")
+
+        if user_input.lower() in ['exit', 'quit']:
+            console.print("\n[info]Exiting Feature Breakdown Agent. Goodbye![/info]")
+            return None, None
+
+        project_directory = user_input.rstrip('/') if user_input else "."
         if not project_directory:
             project_directory = "."
+
+    # Display phase header AFTER folder selection
+    print_phase_header("Context Gathering")
+
+    existing_features_context = ""
 
     # Now configure agent options with the project directory injected
     phase_0_prompt = PHASE_0_SYSTEM_PROMPT.replace("{project_directory}", project_directory)
@@ -540,8 +563,8 @@ async def run_phase_0() -> tuple[str, str]:
         # Initial query to start Phase 0
         initial_prompt = f"""The user wants to work on their project located at: {project_directory}
 
-Please:
-1. Check if there's a "features/" subdirectory in the project folder using the Glob tool
+Please start by checking the project context:
+1. Use the Glob tool to check if there's a "features/" subdirectory in the project folder
 2. Handle the scenario appropriately:
    - If features/ exists and has .md files: Read them and briefly summarize existing features
    - If features/ doesn't exist: Ask if this is a new project or if features are stored elsewhere
@@ -549,7 +572,10 @@ Please:
 3. For new projects, you can create a features/ folder when confirmed
 4. After understanding the project context, ask if they're ready to continue
 
-IMPORTANT: Be conversational but brief - no lengthy explanations or pitching features."""
+IMPORTANT:
+- Start immediately with checking for the features/ directory - no greeting needed
+- Be conversational but brief - no lengthy explanations
+- The user has already confirmed the project folder, so just start exploring"""
 
         await client.query(initial_prompt)
 
@@ -921,45 +947,50 @@ async def get_user_action_choice(features_directory: str, future_features_direct
             - action: One of "discover", "new", "expand", "continue", or "exit"
             - selected_file: Path to selected file for "expand" or "continue", None for "discover" or "new"
     """
+    import questionary
     from pathlib import Path
 
     console.print()
-    console.print("[info]═══════════════════════════════════════════════════════════════[/info]")
-    console.print()
-    console.print("[agent]How would you like to proceed?[/agent]")
-    console.print()
-    console.print("  [bold]1.[/bold] Identify application features")
-    console.print("  [bold]2.[/bold] Define a new feature")
-    console.print("  [bold]3.[/bold] Expand an existing future-feature stub")
-    console.print("  [bold]4.[/bold] Continue with an existing feature")
-    console.print("  [bold]5.[/bold] Exit")
-    console.print()
-    console.print("[info]═══════════════════════════════════════════════════════════════[/info]")
-    console.print()
-
-    user_input_handler = UserInput()
 
     while True:
         try:
-            choice = await user_input_handler.get_input("Enter your choice (1-5): ")
-            choice = choice.strip()
+            # Main menu selection
+            choice = await questionary.select(
+                "How would you like to proceed?",
+                choices=[
+                    "Identify application features",
+                    "Define a new feature",
+                    "Expand an existing future-feature stub",
+                    "Continue with an existing feature",
+                    "Exit"
+                ],
+                style=questionary.Style([
+                    ('qmark', 'fg:#00d4aa bold'),
+                    ('question', 'fg:#00d4aa bold'),
+                    ('answer', 'fg:#00d4aa'),
+                    ('pointer', 'fg:#00d4aa bold'),
+                    ('highlighted', 'fg:#00d4aa bold'),
+                    ('selected', 'fg:#00d4aa'),
+                ])
+            ).ask_async()
 
-            if choice.lower() in ['exit', 'quit'] or choice == "5":
+            # Handle Ctrl+C or None (when user exits)
+            if choice is None:
                 return "exit", None
 
-            if choice == "1":
+            if choice == "Identify application features":
                 return "discover", None
 
-            elif choice == "2":
+            elif choice == "Define a new feature":
                 return "new", None
 
-            elif choice == "3":
+            elif choice == "Expand an existing future-feature stub":
                 # List available future-features
                 future_features_path = Path(future_features_directory)
                 if not future_features_path.exists():
                     console.print()
                     print_error(f"No future-features directory found at: {future_features_directory}")
-                    print_info("Please choose option 1 to define a new feature.")
+                    print_info("Please choose a different option.")
                     console.print()
                     continue
 
@@ -967,85 +998,80 @@ async def get_user_action_choice(features_directory: str, future_features_direct
                 if not future_feature_files:
                     console.print()
                     print_error("No future-feature stubs found.")
-                    print_info("Please choose option 1 to define a new feature.")
+                    print_info("Please choose a different option.")
                     console.print()
                     continue
 
-                # Display available future-features
+                # Use questionary to select feature
                 console.print()
-                console.print("[agent]Available future-features:[/agent]")
-                console.print()
-                for idx, file in enumerate(future_feature_files, 1):
-                    console.print(f"  [bold]{idx}.[/bold] {file.stem}")
-                console.print()
+                feature_choices = [file.stem for file in future_feature_files]
+                feature_choices.append("← Go back")
 
-                # Get user selection
-                selection = await user_input_handler.get_input(f"Select a future-feature (1-{len(future_feature_files)}): ")
-                selection = selection.strip()
+                selected = await questionary.select(
+                    "Select a future-feature to expand:",
+                    choices=feature_choices,
+                    style=questionary.Style([
+                        ('qmark', 'fg:#00d4aa bold'),
+                        ('question', 'fg:#00d4aa bold'),
+                        ('answer', 'fg:#00d4aa'),
+                        ('pointer', 'fg:#00d4aa bold'),
+                        ('highlighted', 'fg:#00d4aa bold'),
+                        ('selected', 'fg:#00d4aa'),
+                    ])
+                ).ask_async()
 
-                if selection.lower() in ['exit', 'quit']:
-                    return "exit", None
-
-                try:
-                    idx = int(selection) - 1
-                    if 0 <= idx < len(future_feature_files):
-                        return "expand", str(future_feature_files[idx])
-                    else:
-                        print_error("Invalid selection. Please try again.")
-                        console.print()
-                        continue
-                except ValueError:
-                    print_error("Invalid input. Please enter a number.")
+                if selected is None or selected == "← Go back":
                     console.print()
                     continue
 
-            elif choice == "4":
+                # Find the file that matches the selected stem
+                selected_file = next(f for f in future_feature_files if f.stem == selected)
+                return "expand", str(selected_file)
+
+            elif choice == "Continue with an existing feature":
                 # Find incomplete features
                 incomplete_features = find_incomplete_features(features_directory)
 
                 if not incomplete_features:
                     console.print()
                     print_error("No incomplete features found.")
-                    print_info("Please choose option 1 to define a new feature.")
+                    print_info("Please choose a different option.")
                     console.print()
                     continue
 
-                # Display incomplete features
+                # Use questionary to select feature
                 console.print()
-                console.print("[agent]Incomplete features:[/agent]")
-                console.print()
-                for idx, (feature_slug, status) in enumerate(incomplete_features, 1):
-                    console.print(f"  [bold]{idx}.[/bold] {feature_slug} ({status})")
-                console.print()
+                feature_choices = [f"{slug} ({status})" for slug, status in incomplete_features]
+                feature_choices.append("← Go back")
 
-                # Get user selection
-                selection = await user_input_handler.get_input(f"Select a feature (1-{len(incomplete_features)}): ")
-                selection = selection.strip()
+                selected = await questionary.select(
+                    "Select a feature to continue:",
+                    choices=feature_choices,
+                    style=questionary.Style([
+                        ('qmark', 'fg:#00d4aa bold'),
+                        ('question', 'fg:#00d4aa bold'),
+                        ('answer', 'fg:#00d4aa'),
+                        ('pointer', 'fg:#00d4aa bold'),
+                        ('highlighted', 'fg:#00d4aa bold'),
+                        ('selected', 'fg:#00d4aa'),
+                    ])
+                ).ask_async()
 
-                if selection.lower() in ['exit', 'quit']:
-                    return "exit", None
-
-                try:
-                    idx = int(selection) - 1
-                    if 0 <= idx < len(incomplete_features):
-                        feature_slug, _ = incomplete_features[idx]
-                        return "continue", feature_slug
-                    else:
-                        print_error("Invalid selection. Please try again.")
-                        console.print()
-                        continue
-                except ValueError:
-                    print_error("Invalid input. Please enter a number.")
+                if selected is None or selected == "← Go back":
                     console.print()
                     continue
-            else:
-                print_error("Invalid choice. Please enter 1-5.")
-                console.print()
-                continue
+
+                # Extract the feature slug (before the status in parentheses)
+                feature_slug = selected.split(" (")[0]
+                return "continue", feature_slug
+
+            elif choice == "Exit":
+                return "exit", None
 
         except KeyboardInterrupt:
             console.print("\n")
-            print_info("Interrupted. Type 'exit' to quit.")
+            print_info("Interrupted. Returning to menu...")
+            console.print()
             continue
 
 
