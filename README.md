@@ -1,51 +1,53 @@
-# Feature Breakdown Agent
+# Polly - Feature Breakdown Agent
 
-A terminal-based AI agent that transforms high-level feature descriptions into detailed, incremental coding prompts.
+A conversational AI agent that transforms high-level feature descriptions into detailed, incremental coding prompts using the Claude Skills framework.
 
 ## Overview
 
-This agent helps product managers, technical leads, and developers break down complex features into implementable vertical slices through an intelligent workflow:
+Polly helps product managers, technical leads, and developers break down complex features into implementable vertical slices through an intelligent, conversational workflow powered by Claude Skills:
 
-• **Context Gathering** - Reads existing feature documentation to understand your codebase
-• **Feature Identification** - Identify multiple discrete features from high-level app descriptions (optional)
-• **Feature Discovery** - Conducts an interactive conversation with minimum 5 clarifying questions for a single feature
-• **Incremental Grouping** - Breaks features into 2-8 vertical slices with clear user value
-• **Prompt Generation** - Generates detailed, ready-to-implement coding prompts
+• **Feature Identification** - Break down high-level application descriptions into discrete features
+• **Feature Discovery** - Deep dive into a single feature with interactive Q&A
+• **Iteration Breakdown** - Split features into 2-8 vertical slices with clear user value
+• **Prompt Generation** - Generate detailed, ready-to-implement coding prompts
 
 ## Key Features
 
-### Multi-Path Workflow
-After context gathering, choose how to proceed:
-- **Identify application features** - Identify multiple discrete features at once (great for new projects)
-- **Define a new feature** - Deep dive into a single feature with clarifying questions
-- **Expand a future-feature stub** - Build on previously captured ideas
-- **Continue an incomplete feature** - Resume at the appropriate phase
+### Skills-Based Architecture
+
+Polly uses Claude Skills to modularize its capabilities. Each skill is invoked autonomously by the agent based on the conversation:
+
+- **feature-identification** - Identify multiple discrete features from app descriptions
+- **feature-discovery** - Conduct deep discovery on a single feature
+- **iteration-breakdown** - Break features into vertical slices
+- **prompt-generation** - Generate implementation prompts
+
+### Conversational Interaction
+
+Polly maintains a single, long-running conversation session where it:
+- Autonomously decides when to use skills based on your requests
+- Maintains context throughout the entire workflow
+- Can present options when helpful (but doesn't require explicit menus)
+- Feels natural and responsive
 
 ### Future Feature Capture
-During discovery or grouping, the agent can identify scope creep and capture separate features as placeholders for later planning.
 
-### Continuous Session
-Work on multiple features in a single session - after completing a feature, the agent returns to the action menu instead of exiting.
+During discovery or breakdown, Polly can identify scope creep and capture separate features as placeholders for later planning.
 
-### Smart Phase Detection
-When continuing an incomplete feature, the agent automatically determines which phase to resume:
-- Missing increments → Resume at Phase 2
-- Missing prompts → Resume at Phase 3
+### Smart Context Awareness
+
+On startup, Polly:
+- Explores your project for existing feature documentation
+- Understands what you've already defined
+- Identifies incomplete features
+- Guides you on what to do next
 
 ## Installation
 
 ### Prerequisites
 
 - Python 3.10+
-- Claude Code CLI (for agent SDK)
-
-```bash
-# Install Claude Code CLI
-npm install -g @anthropic-ai/claude-code
-
-# Verify installation
-claude --version
-```
+- Claude Agent SDK
 
 ### Setup
 
@@ -101,7 +103,7 @@ uv run polly
 
 ### Basic Usage
 
-**Important:** Run the agent from within your project directory. The agent will use your current working directory as the project root.
+**Important:** Run Polly from within your project directory. The agent will use your current working directory as the project root.
 
 ```bash
 # Navigate to your project
@@ -120,46 +122,125 @@ feature-breakdown-agent
 ### Example Session
 
 ```
-======================================================================
-Welcome to the Feature Breakdown Agent!
-======================================================================
+   ___      _ _
+  / _ \___ | | |_   _
+ / /_)/ _ \| | | | | |
+/ ___/ (_) | | | |_| |
+\/    \___/|_|_|\__, |
+                |___/
 
-Starting: Context Gathering
-───────────────────────────────────────────────────────────────
-
-Agent: Hello! Let's start by understanding your project.
+A terminal-based AI agent that helps you define features and transform
+high level feature descriptions into detailed, incremental coding prompts.
 
 Project folder: /Users/you/your-project
-       Is this correct? (Press Enter to confirm, or type a different path)
+Would you like to use this folder?
+  > Use this folder
+    Specify a different folder
 
-You: [Press Enter]
+Starting Polly...
 
-[Agent checks for features/ folder and existing documentation]
+Agent: Let me check if there's a features directory...
+[Using Glob...]
 
-Agent: I found 3 existing features. Ready to continue?
+Agent: I found 3 existing features in your project:
+- User Authentication
+- Profile Management
+- Search Functionality
+
+Would you like to continue one of these features, start a new one, or
+identify more features for your application?
+
+You: I want to add a notification system
+
+Agent: Great! Let me help you develop that feature. To start with, can
+you tell me what types of notifications you're envisioning? For example,
+email, in-app, push notifications, or something else?
+
+You: Email and in-app notifications
+
+Agent: Perfect. Who will be receiving these notifications? End users,
+administrators, or both?
+
+[Conversation continues with deep discovery...]
+
+Agent: Based on our discussion, I've created a comprehensive feature
+description saved to features/notification-system.md. Would you like
+me to break this down into implementable increments now?
 
 You: yes
 
-✓ Context Gathering Complete
+[Agent uses iteration-breakdown skill to create vertical slices...]
 
-═══════════════════════════════════════════════════════════════
-How would you like to proceed?
+Agent: I've broken this into 4 increments. Would you like me to generate
+the detailed coding prompts for each increment?
 
-  1. Identify application features
-  2. Define a new feature
-  3. Expand an existing future-feature stub
-  4. Continue with an existing feature
-  5. Exit
-═══════════════════════════════════════════════════════════════
+You: yes
 
-Enter your choice (1-5): 1
+[Agent uses prompt-generation skill...]
 
-[Proceeds to Feature Identification...]
+Agent: I've generated 4 detailed prompts in prompts/notification-system/.
+These are ready to use with developers or AI coding agents! Would you
+like to work on another feature?
 ```
+
+### Workflow Options
+
+Polly adapts to your needs:
+
+**New Project:**
+1. "I'm building a task management app" → Feature Identification → Multiple feature stubs
+2. Pick a feature → Feature Discovery → Detailed description
+3. Iteration Breakdown → Vertical slices
+4. Prompt Generation → Implementation guides
+
+**Existing Project:**
+- "Continue working on user authentication" → Resumes where you left off
+- "Add a new reporting feature" → Feature Discovery for new feature
+- "I have feature stubs from before" → Expand on specific stub
+
+**Natural Requests:**
+- "Break down my search feature"
+- "Help me identify features for my app"
+- "Generate prompts for the authentication feature"
 
 ## Development
 
 See [CLAUDE.md](CLAUDE.md) for detailed development guidance.
+
+### Project Structure
+
+**Development (This Repo):**
+```
+feature-breakdown-agent/
+├── feature_breakdown_agent/
+│   ├── feature_breakdown_agent.py   # Main agent (~240 lines)
+│   ├── coordinator_prompt.py        # Coordinator system prompt
+│   ├── display.py                   # Terminal UI
+│   └── skills/                      # Claude Skills
+│       ├── feature-identification/
+│       │   └── SKILL.md
+│       ├── feature-discovery/
+│       │   └── SKILL.md
+│       ├── iteration-breakdown/
+│       │   └── SKILL.md
+│       └── prompt-generation/
+│           └── SKILL.md
+├── tests/
+├── CLAUDE.md                        # Development context
+└── pyproject.toml
+```
+
+**User Projects (Where Polly Runs):**
+```
+your-project/
+├── features/              # Feature descriptions (Polly creates/reads)
+├── future-features/       # Feature stubs for later (Polly creates)
+└── prompts/              # Generated coding prompts (Polly creates)
+    └── {feature-name}/
+        ├── increment_01_*.md
+        ├── increment_02_*.md
+        └── ...
+```
 
 ### Running Tests
 
@@ -171,41 +252,45 @@ uv run pytest
 uv run pytest -v
 
 # Run specific test file
-uv run pytest tests/test_phase_0.py
+uv run pytest tests/test_agent.py
 ```
 
-### Current Status
+### Architecture
 
-✅ **MVP Complete** - All core features implemented
+**Skills-Based Design:**
+- Single long-running agent session (not multiple phases)
+- Skills invoked autonomously based on conversation
+- Natural context retention throughout session
+- ~240 lines of orchestration code (vs ~2000 in phase-based version)
+
+**Key Advantages:**
+- Much more maintainable (skills are self-contained)
+- More flexible (users can request actions naturally)
+- Better context management (single session)
+- Easier to extend (add new skills without touching core)
+
+## Current Status
+
+✅ **Skills-Based Refactor Complete**
 
 **Implemented:**
-- ✅ Context Gathering
-- ✅ Feature Identification (identify multiple features at once)
-- ✅ Feature Discovery (deep dive into single feature with future-feature capture)
-- ✅ Incremental Grouping (with vertical slice validation)
-- ✅ Prompt Generation (template-based)
-- ✅ Multi-path workflow (identify/define/expand/continue)
-- ✅ Continuous session support
-- ✅ Smart phase detection and resumption
+- ✅ Claude Skills framework integration
+- ✅ Single conversational agent session
+- ✅ Autonomous skill invocation
+- ✅ Feature Identification skill
+- ✅ Feature Discovery skill
+- ✅ Iteration Breakdown skill
+- ✅ Prompt Generation skill
+- ✅ Context-aware exploration on startup
+- ✅ Future feature capture
+- ✅ Conversational interaction style
 - ✅ Global CLI command (`polly`)
-
-**Project Structure:**
-```
-your-project/
-├── features/              # Feature documentation (agent reads)
-├── future-features/       # Captured ideas for later (agent creates)
-└── prompts/              # Generated prompts (agent creates)
-    └── {feature-name}/
-        ├── increment_01_*.md
-        ├── increment_02_*.md
-        └── ...
-```
 
 ## Documentation
 
 - **[PRD](prompt_generator_prd.md)** - Complete product requirements
-- **[CLAUDE.md](CLAUDE.md)** - Development context and architecture
-- **[Agent SDK Guide](.claude/claude_agent_sdk_guide.md)** - SDK reference
+- **[CLAUDE.md](CLAUDE.md)** - Development context and skills architecture
+- **[Skills](feature_breakdown_agent/skills/)** - Individual skill definitions
 
 ## License
 

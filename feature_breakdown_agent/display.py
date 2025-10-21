@@ -113,39 +113,6 @@ Expand on existing feature stubs or define new features with **Feature Discovery
     console.print(Panel(table, border_style="cyan", padding=(1, 2)))
 
 
-def print_phase_header(phase_name: str):
-    """Display phase transition header.
-
-    Args:
-        phase_name: Human-readable phase name (e.g., "Context Gathering", "Feature Discovery")
-    """
-    console.print()
-    console.print(Panel(
-        f"[bold white]Starting: {phase_name}[/bold white]",
-        border_style="phase",
-        padding=(0, 2)
-    ))
-    console.print()
-
-
-def print_phase_complete(phase_name: str, extra_info: str = None):
-    """Display phase completion message.
-
-    Args:
-        phase_name: Human-readable phase name (e.g., "Context Gathering", "Feature Discovery")
-        extra_info: Optional additional information to display
-    """
-    console.print()
-    message = f"✓ {phase_name} Complete"
-    if extra_info:
-        message += f"\n\n{extra_info}"
-
-    console.print(Panel(
-        message,
-        border_style="success",
-        padding=(0, 2)
-    ))
-    console.print()
 
 
 def print_agent_message(message: str, render_markdown: bool = False):
