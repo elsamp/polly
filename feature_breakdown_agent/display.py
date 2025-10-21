@@ -95,10 +95,10 @@ def print_welcome():
     # Right column: Instructions
     instructions = """A terminal-based AI agent that helps you define features and transform high level feature descriptions into detailed, incremental coding prompts.
 
-**🚀 New Project?**
+**New Project?**
 Start with **Feature Identification** to identify application features. Polly will create feature stubs that you can then expand on further with **Feature Discovery**.
 
-**📋 Existing Features?**
+**Existing Features?**
 Expand on existing feature stubs or define new features with **Feature Discovery**. Then move on to **Increment Grouping** and **Prompt Generation** to create your prompts!"""
 
     # Create the 2-column layout with specific widths
