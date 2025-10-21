@@ -12,6 +12,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.theme import Theme
 from rich.markdown import Markdown as RichMarkdown
 from rich.text import Text
+from rich.columns import Columns
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.styles import Style as PromptStyle
@@ -81,24 +82,35 @@ prompt_style = PromptStyle.from_dict({
 
 def print_welcome():
     """Display welcome banner."""
-    welcome_text = """
-# Feature Breakdown Agent
+    # Left column: ASCII art (using raw string to avoid escape warnings)
+    ascii_art = Text(r"""
+   ___      _ _
+  / _ \___ | | |_   _
+ / /_)/ _ \| | | | | |
+/ ___/ (_) | | | |_| |
+\/    \___/|_|_|\__, |
+                |___/
+""", style="bold cyan")
 
-A terminal-based AI agent that transforms high-level feature descriptions
-into detailed, incremental coding prompts.
+    # Right column: Instructions
+    instructions = """A terminal-based AI agent that helps you define features and transform high level feature descriptions into detailed, incremental coding prompts.
 
-## Getting Started
-- **New Project?** Start with Feature Identification to identify all features at once
-- **Existing Project?** Discover new features or expand on existing stubs
+**🚀 New Project?**
+Start with **Feature Identification** to identify application features. Polly will create feature stubs that you can then expand on further with **Feature Discovery**.
 
-## Process Overview
-• **Context Gathering** - Understanding your project
-• **Feature Identification** - Identifying multiple features at once (optional)
-• **Feature Discovery** - Exploring a single feature in detail
-• **Incremental Grouping** - Breaking down into vertical slices
-• **Prompt Generation** - Creating detailed prompts
-"""
-    console.print(Panel(Markdown(welcome_text), border_style="cyan", padding=(1, 2)))
+**📋 Existing Features?**
+Expand on existing feature stubs or define new features with **Feature Discovery**. Then move on to **Increment Grouping** and **Prompt Generation** to create your prompts!"""
+
+    # Create the 2-column layout with specific widths
+    from rich.table import Table
+
+    table = Table.grid(padding=(0, 2))
+    table.add_column(width=25)  # Fixed width for ASCII art
+    table.add_column()  # Flexible width for instructions
+
+    table.add_row(ascii_art, Markdown(instructions))
+
+    console.print(Panel(table, border_style="cyan", padding=(1, 2)))
 
 
 def print_phase_header(phase_name: str):
