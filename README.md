@@ -17,8 +17,8 @@ This agent helps product managers, technical leads, and developers break down co
 ### Multi-Path Workflow
 After context gathering, choose how to proceed:
 - **Identify application features** - Identify multiple discrete features at once (great for new projects)
-- **Discover a new feature** - Deep dive into a single feature with clarifying questions
-- **Discover a future-feature stub** - Build on previously captured ideas
+- **Define a new feature** - Deep dive into a single feature with clarifying questions
+- **Expand a future-feature stub** - Build on previously captured ideas
 - **Continue an incomplete feature** - Resume at the appropriate phase
 
 ### Future Feature Capture
@@ -145,9 +145,9 @@ You: yes
 ═══════════════════════════════════════════════════════════════
 How would you like to proceed?
 
-  1. Identify application features (create multiple feature stubs)
-  2. Discover a new feature
-  3. Discover an existing future-feature stub
+  1. Identify application features
+  2. Define a new feature
+  3. Expand an existing future-feature stub
   4. Continue with an existing feature
   5. Exit
 ═══════════════════════════════════════════════════════════════
@@ -184,7 +184,7 @@ uv run pytest tests/test_phase_0.py
 - ✅ Feature Discovery (deep dive into single feature with future-feature capture)
 - ✅ Incremental Grouping (with vertical slice validation)
 - ✅ Prompt Generation (template-based)
-- ✅ Multi-path workflow (identify/discover new/discover stub/continue)
+- ✅ Multi-path workflow (identify/define/expand/continue)
 - ✅ Continuous session support
 - ✅ Smart phase detection and resumption
 - ✅ Global CLI command (`polly`)
