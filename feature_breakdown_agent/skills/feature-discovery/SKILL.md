@@ -48,30 +48,9 @@ During discovery, the user may mention functionality that sounds like a **separa
 1. **Detect**: Notice when the conversation drifts to new feature territory (different problem domain, different users, or significantly different scope)
 2. **Confirm**: Ask the user directly: "This sounds like a separate feature. Should I capture this as '[Feature Name]' for future planning?"
 3. **If user confirms it's a separate feature**:
-   - Create a minimal placeholder document using the Write tool
+   - Read the template from: `feature_breakdown_agent/skills/feature-discovery/future-feature-template.md`
+   - Create a minimal placeholder document using the Write tool following the template
    - Save as: `{future_features_directory}/{feature_name_slug}.md`
-   - Use this template:
-
-```markdown
-# Future Feature: [Feature Name]
-
-**Status**: Placeholder for future planning
-
-## Brief Description
-[1-2 sentence description based on what was mentioned]
-
-## Mentioned In Context
-This feature was mentioned during the discovery phase for: **[Current Feature Name]**
-
-**Date Captured**: [Current date/time]
-
-## Initial Notes
-[Any additional context from the conversation]
-
----
-*This is a placeholder document created by the Feature Breakdown Agent.*
-*Use Feature Discovery to develop this feature when you're ready.*
-```
 
 4. **Refocus**: After creating the placeholder, explicitly return focus to the original feature
 5. **Reference when relevant**: If captured features become dependencies, mention them in the main feature summary
@@ -79,47 +58,10 @@ This feature was mentioned during the discovery phase for: **[Current Feature Na
 ## Writing the Feature Summary
 
 When you have sufficient understanding:
-1. Use the Write tool to create a feature summary file
-2. Save it as: `{features_directory}/{feature_name_slug}.md`
-3. Use a URL-friendly slug (lowercase, hyphens, no spaces)
-4. Include these sections in the summary:
-
-```markdown
-# Feature: [Feature Name]
-
-## Problem Statement
-[Clear description of the problem this feature solves]
-
-## Target Users
-[Who will use this feature and their needs]
-
-## Key Functionality
-[Comprehensive list of what this feature does]
-
-## Technical Constraints
-[Technology limitations, performance requirements, security considerations]
-
-## Dependencies
-
-### Existing Features
-[List any dependencies on existing features in the system]
-
-### External Dependencies
-[Third-party services, libraries, APIs needed]
-
-### Future Features
-[Any captured future features that relate to this one]
-
-## Expected Behavior
-[Detailed description of how the feature should behave]
-
-## Open Questions
-[Any remaining questions or uncertainties]
-
----
-**Created**: [Date]
-**Status**: Ready for Iteration Breakdown
-```
+1. Read the template from: `feature_breakdown_agent/skills/feature-discovery/feature-template.md`
+2. Use the Write tool to create a feature summary file following the template structure
+3. Save it as: `{features_directory}/{feature_name_slug}.md`
+4. Use a URL-friendly slug (lowercase, hyphens, no spaces)
 
 ## Completion
 

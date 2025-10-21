@@ -41,38 +41,14 @@ Help users identify discrete features for their application by asking clarifying
 
 ## Creating Feature Stubs
 
-For each identified feature, create a stub document using the Write tool with this template:
+For each identified feature, create a stub document using the Write tool.
 
-```markdown
-# Future Feature: [Feature Name]
+**Template Location**: Read the template from the skill directory at: `feature_breakdown_agent/skills/feature-identification/future-feature-template.md`
 
-**Status**: Discovered during application planning
-
-## Brief Description
-[2-3 sentence description of what this feature does]
-
-## Target Users
-[Who will use this feature]
-
-## Core Value
-[What problem does this solve or what value does it deliver]
-
-## Potential Scope
-[High-level list of capabilities this feature might include - 3-5 bullet points]
-
-## Dependencies
-[Any obvious dependencies on other features, if known]
-
-## Notes
-[Any additional context or considerations]
-
----
-**Discovered**: [Current date]
-*This is a placeholder document created by the Feature Breakdown Agent.*
-*Run the agent and select "Feature Discovery" to develop this feature in detail.*
-```
-
-Save each stub as: `{future_features_directory}/{feature_name_slug}.md`
+**Steps**:
+1. Read the template file to see the required structure
+2. Fill in the template with the specific feature information
+3. Save each stub as: `{future_features_directory}/{feature_name_slug}.md`
 
 (The future_features_directory will be provided by the main agent - typically `./future-features/` or `{project_dir}/future-features/`)
 

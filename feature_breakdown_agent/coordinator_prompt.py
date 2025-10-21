@@ -4,6 +4,74 @@ Main Coordinator System Prompt for Polly
 This prompt guides the main agent session and coordinates the use of skills.
 """
 
+import re
+from pathlib import Path
+from typing import List, Dict
+
+
+def load_skill_metadata(skills_directory: Path) -> List[Dict[str, str]]:
+    """Load metadata from all SKILL.md files in the skills directory.
+
+    Args:
+        skills_directory: Path to the skills directory
+
+    Returns:
+        List of dicts with 'name', 'description', and 'path' keys
+    """
+    skills = []
+
+    if not skills_directory.exists():
+        return skills
+
+    # Find all SKILL.md files
+    for skill_md in skills_directory.glob("*/SKILL.md"):
+        try:
+            content = skill_md.read_text()
+
+            # Extract YAML frontmatter
+            frontmatter_match = re.match(r'^---\s*\n(.*?)\n---\s*\n', content, re.DOTALL)
+            if not frontmatter_match:
+                continue
+
+            frontmatter = frontmatter_match.group(1)
+
+            # Extract name and description
+            name_match = re.search(r'^name:\s*(.+)$', frontmatter, re.MULTILINE)
+            desc_match = re.search(r'^description:\s*(.+)$', frontmatter, re.MULTILINE)
+
+            if name_match and desc_match:
+                skills.append({
+                    'name': name_match.group(1).strip(),
+                    'description': desc_match.group(1).strip(),
+                    'path': str(skill_md.relative_to(skills_directory.parent))
+                })
+        except Exception as e:
+            # Skip skills that can't be loaded
+            print(f"Warning: Failed to load skill from {skill_md}: {e}")
+            continue
+
+    return skills
+
+
+def format_skills_metadata(skills: List[Dict[str, str]]) -> str:
+    """Format skill metadata for inclusion in the system prompt.
+
+    Args:
+        skills: List of skill metadata dicts
+
+    Returns:
+        Formatted string for system prompt
+    """
+    if not skills:
+        return "No skills available."
+
+    formatted = []
+    for skill in skills:
+        formatted.append(f"**{skill['name']}**: {skill['description']}")
+
+    return "\n".join(formatted)
+
+
 COORDINATOR_SYSTEM_PROMPT = """You are Polly, a terminal-based AI agent that helps users define features and transform high-level feature descriptions into detailed, incremental coding prompts.
 
 ## Your Core Purpose
@@ -12,28 +80,18 @@ You help product managers, technical leads, and developers break down complex fe
 
 ## Your Capabilities
 
-You have access to four specialized skills that you can invoke when appropriate:
+You have access to specialized skills that you can invoke when appropriate. Skills are located in: `{skills_directory}`
 
-1. **Feature Identification** (`feature-identification` skill)
-   - Break down a high-level application description into discrete features
-   - Create feature stubs for multiple features at once
-   - Focus on BREADTH (identifying many features) rather than depth
+### Available Skills
 
-2. **Feature Discovery** (`feature-discovery` skill)
-   - Conduct deep discovery on a single feature through Q&A
-   - Create comprehensive feature descriptions
-   - Capture scope creep as future features
-   - Focus on DEPTH (detailed understanding of one feature)
+{skills_metadata}
 
-3. **Iteration Breakdown** (`iteration-breakdown` skill)
-   - Break a feature into 2-8 implementable increments
-   - Ensure each increment is a vertical slice delivering user value
-   - Identify dependencies between increments and on existing features
+### How to Use Skills
 
-4. **Prompt Generation** (`prompt-generation` skill)
-   - Generate detailed coding prompts for each increment
-   - Follow standardized template structure
-   - Provide comprehensive implementation guidance
+When you determine a skill is relevant to the current task:
+1. Use the Read tool to read the full skill instructions: `{skills_directory}/[skill-name]/SKILL.md`
+2. Follow the detailed instructions in the SKILL.md file
+3. Skills may reference template files in their directory - read these as needed
 
 ## Project Structure
 
@@ -190,27 +248,34 @@ You are a helpful, knowledgeable assistant focused on helping users break down c
 """
 
 
-def get_coordinator_prompt(project_directory: str) -> str:
-    """Get the coordinator system prompt with project directory injected.
+def get_coordinator_prompt(project_directory: str, skills_directory: Path) -> str:
+    """Get the coordinator system prompt with paths and skill metadata injected.
 
     Args:
         project_directory: Path to the user's project
+        skills_directory: Path to the skills directory
 
     Returns:
         Formatted coordinator system prompt
     """
     import os
 
+    # Load skill metadata
+    skills = load_skill_metadata(skills_directory)
+    skills_metadata_formatted = format_skills_metadata(skills)
+
     # Calculate directory paths
     features_directory = os.path.join(project_directory, "features")
     future_features_directory = os.path.join(project_directory, "future-features")
     prompts_directory = os.path.join(project_directory, "prompts")
 
-    # Inject paths into the prompt
+    # Inject paths and metadata into the prompt
     prompt = COORDINATOR_SYSTEM_PROMPT
     prompt = prompt.replace("{project_directory}", project_directory)
     prompt = prompt.replace("{features_directory}", features_directory)
     prompt = prompt.replace("{future_features_directory}", future_features_directory)
     prompt = prompt.replace("{prompts_directory}", prompts_directory)
+    prompt = prompt.replace("{skills_directory}", str(skills_directory))
+    prompt = prompt.replace("{skills_metadata}", skills_metadata_formatted)
 
     return prompt

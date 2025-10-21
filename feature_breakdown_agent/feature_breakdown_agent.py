@@ -77,13 +77,13 @@ async def run_agent():
         if not project_directory:
             project_directory = "."
 
-    # Get coordinator system prompt with project directory injected
-    coordinator_prompt = get_coordinator_prompt(project_directory)
-
     # Determine skills directory path (bundled with package)
     # The skills directory is at: feature_breakdown_agent/skills/
     package_dir = Path(__file__).parent
     skills_directory = package_dir / "skills"
+
+    # Get coordinator system prompt with project directory and skills injected
+    coordinator_prompt = get_coordinator_prompt(project_directory, skills_directory)
 
     # Configure agent options
     options = ClaudeAgentOptions(

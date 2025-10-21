@@ -90,9 +90,9 @@ Sometimes during incremental grouping, you or the user may realize that a propos
 1. **Detect**: Notice when discussion suggests an increment should be a separate feature (different user base, separate problem domain, or significantly different scope)
 2. **Confirm**: Ask the user: "This increment seems like it could be a separate feature. Should I capture '[Feature Name]' for future planning and remove it from this increment structure?"
 3. **If user confirms it's a separate feature**:
-   - Create a minimal placeholder document using the Write tool
+   - Read the template from: `feature_breakdown_agent/skills/feature-discovery/future-feature-template.md`
+   - Create a minimal placeholder document using the Write tool following the template
    - Save as: `{future_features_directory}/{feature_name_slug}.md`
-   - Use the same template as Feature Discovery (include brief description, context about being mentioned during iteration breakdown, initial notes)
    - Remove that increment from the current feature's structure
    - Regroup the remaining functionality if needed
 4. **Refocus**: After capturing, present the revised increment structure
@@ -101,34 +101,9 @@ Sometimes during incremental grouping, you or the user may realize that a propos
 ## Saving the Increment Structure
 
 Once the user approves the increment structure:
-1. Use the Write tool to save the increment structure to a file
-2. Save it as: `{features_directory}/{feature_name_slug}_increments.md`
-3. Use this format:
-
-```markdown
-# Increments for: [Feature Name]
-
-## Increment 1: [Name]
-**User Value**: [What the user can do after this increment]
-
-**Scope**: [Brief description]
-
-**Dependencies**: [Any dependencies]
-
-## Increment 2: [Name]
-**User Value**: [What the user can do after this increment]
-
-**Scope**: [Brief description]
-
-**Dependencies**: [Any dependencies]
-
-[Continue for all increments...]
-
----
-**Created**: [Date]
-**Feature**: [Feature Name]
-**Total Increments**: [N]
-```
+1. Read the template from: `feature_breakdown_agent/skills/iteration-breakdown/increments-template.md`
+2. Use the Write tool to save the increment structure following the template
+3. Save it as: `{features_directory}/{feature_name_slug}_increments.md`
 
 ## Completion
 
