@@ -88,13 +88,13 @@ A terminal-based AI agent that transforms high-level feature descriptions
 into detailed, incremental coding prompts.
 
 ## Getting Started
-- **New Project?** Start with Feature Discovery to identify all features at once
-- **Existing Project?** Define new features or expand on existing stubs
+- **New Project?** Start with Feature Identification to identify all features at once
+- **Existing Project?** Discover new features or expand on existing stubs
 
 ## Process Overview
 • **Context Gathering** - Understanding your project
-• **Feature Discovery** - Identifying multiple features at once (optional)
-• **Discovery** - Exploring feature ideas in detail
+• **Feature Identification** - Identifying multiple features at once (optional)
+• **Feature Discovery** - Exploring a single feature in detail
 • **Incremental Grouping** - Breaking down into vertical slices
 • **Prompt Generation** - Creating detailed prompts
 """

@@ -7,8 +7,8 @@ A terminal-based AI agent that transforms high-level feature descriptions into d
 This agent helps product managers, technical leads, and developers break down complex features into implementable vertical slices through an intelligent workflow:
 
 • **Context Gathering** - Reads existing feature documentation to understand your codebase
-• **Feature Discovery** - Identify multiple discrete features from high-level app descriptions (optional)
-• **Discovery** - Conducts an interactive conversation with minimum 5 clarifying questions
+• **Feature Identification** - Identify multiple discrete features from high-level app descriptions (optional)
+• **Feature Discovery** - Conducts an interactive conversation with minimum 5 clarifying questions for a single feature
 • **Incremental Grouping** - Breaks features into 2-8 vertical slices with clear user value
 • **Prompt Generation** - Generates detailed, ready-to-implement coding prompts
 
@@ -16,9 +16,9 @@ This agent helps product managers, technical leads, and developers break down co
 
 ### Multi-Path Workflow
 After context gathering, choose how to proceed:
-- **Discover application features** - Identify multiple discrete features at once (great for new projects)
-- **Define a new feature** - Start fresh with Phase 1 discovery
-- **Expand a future-feature stub** - Build on previously captured ideas
+- **Identify application features** - Identify multiple discrete features at once (great for new projects)
+- **Discover a new feature** - Deep dive into a single feature with clarifying questions
+- **Discover a future-feature stub** - Build on previously captured ideas
 - **Continue an incomplete feature** - Resume at the appropriate phase
 
 ### Future Feature Capture
@@ -145,16 +145,16 @@ You: yes
 ═══════════════════════════════════════════════════════════════
 How would you like to proceed?
 
-  1. Discover application features (create multiple feature stubs)
-  2. Define a new feature
-  3. Expand on an existing future-feature stub
+  1. Identify application features (create multiple feature stubs)
+  2. Discover a new feature
+  3. Discover an existing future-feature stub
   4. Continue with an existing feature
   5. Exit
 ═══════════════════════════════════════════════════════════════
 
 Enter your choice (1-5): 1
 
-[Proceeds to Feature Discovery or Phase 1...]
+[Proceeds to Feature Identification...]
 ```
 
 ## Development
@@ -180,11 +180,11 @@ uv run pytest tests/test_phase_0.py
 
 **Implemented:**
 - ✅ Context Gathering
-- ✅ Feature Discovery (identify multiple features at once)
-- ✅ Discovery (with future-feature capture)
+- ✅ Feature Identification (identify multiple features at once)
+- ✅ Feature Discovery (deep dive into single feature with future-feature capture)
 - ✅ Incremental Grouping (with vertical slice validation)
 - ✅ Prompt Generation (template-based)
-- ✅ Multi-path workflow (discover/new/expand/continue)
+- ✅ Multi-path workflow (identify/discover new/discover stub/continue)
 - ✅ Continuous session support
 - ✅ Smart phase detection and resumption
 - ✅ Global CLI command (`polly`)

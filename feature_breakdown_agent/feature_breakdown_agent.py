@@ -23,9 +23,9 @@ from .display import (
 )
 
 
-FEATURE_DISCOVERY_SYSTEM_PROMPT = """You are a Product Requirements specialist helping to identify discrete features for an application.
+FEATURE_IDENTIFICATION_SYSTEM_PROMPT = """You are a Product Requirements specialist helping to identify discrete features for an application.
 
-You are currently in **Feature Discovery Phase**.
+You are currently in **Feature Identification**.
 
 ## Your Task
 1. Ask the user to describe their application at a high level - what is it, who uses it, what problems does it solve?
@@ -48,7 +48,7 @@ You are currently in **Feature Discovery Phase**.
 - A "feature" is a discrete piece of functionality that delivers value to a specific user type
 - Features should be independent enough to be developed separately
 - Examples of features: "User Authentication", "Profile Management", "Search", "Notifications", "Payment Processing"
-- DO NOT dive deep into any single feature - that's what Phase 1 (Discovery) is for
+- DO NOT dive deep into any single feature - that's what Feature Discovery is for
 - DO NOT include decorative boxes or phase headers - the system handles those automatically
 - **IMPORTANT**: Before using any tool, always explain to the user what you're about to do
 
@@ -177,7 +177,7 @@ IMPORTANT: After completing context gathering:
 
 PHASE_1_SYSTEM_PROMPT = """You are a Product Requirements specialist helping to break down features into implementable increments.
 
-You are currently in **Phase 1: Discovery**.
+You are currently in **Feature Discovery**.
 
 ## Your Task
 1. Ask the user to describe the new feature they want to build
@@ -710,8 +710,8 @@ IMPORTANT: Be conversational but brief - no lengthy explanations or pitching fea
                 print_info("Please try again or type 'exit' to quit.")
 
 
-async def run_feature_discovery_phase(future_features_directory: str) -> tuple[bool, list[str]]:
-    """Run Feature Discovery Phase: Identify discrete features from high-level app description.
+async def run_feature_identification_phase(future_features_directory: str) -> tuple[bool, list[str]]:
+    """Run Feature Identification: Identify discrete features from high-level app description.
 
     Args:
         future_features_directory: Path to save future feature stubs
@@ -723,7 +723,7 @@ async def run_feature_discovery_phase(future_features_directory: str) -> tuple[b
     """
     # Display phase header
     from .display import print_phase_header, print_phase_complete
-    print_phase_header("Feature Discovery")
+    print_phase_header("Feature Identification")
 
     # Track discovered features during this phase
     discovered_features = []
@@ -731,20 +731,20 @@ async def run_feature_discovery_phase(future_features_directory: str) -> tuple[b
     # Initialize user input handler
     user_input_handler = UserInput()
 
-    # Configure agent options for Feature Discovery
+    # Configure agent options for Feature Identification
     # Inject directory path into the system prompt
-    discovery_prompt = FEATURE_DISCOVERY_SYSTEM_PROMPT.replace("{future_features_directory}", future_features_directory)
+    identification_prompt = FEATURE_IDENTIFICATION_SYSTEM_PROMPT.replace("{future_features_directory}", future_features_directory)
 
     options = ClaudeAgentOptions(
-        system_prompt=discovery_prompt,
+        system_prompt=identification_prompt,
         allowed_tools=["Write"],
         permission_mode="acceptEdits",  # Auto-accept file writes
     )
 
     # Use ClaudeSDKClient for stateful conversation
     async with ClaudeSDKClient(options=options) as client:
-        # Initial context for Feature Discovery
-        initial_prompt = """The user has selected Feature Discovery to identify discrete features for their application.
+        # Initial context for Feature Identification
+        initial_prompt = """The user has selected Feature Identification to identify discrete features for their application.
 
 You are continuing a conversation from Phase 0, so DO NOT include greetings or re-introduce yourself.
 
@@ -817,7 +817,7 @@ Remember: Focus on BREADTH (many features) not DEPTH (detailed requirements). De
 
         # Check if phase completed immediately
         if phase_complete:
-            print_phase_complete("Feature Discovery", f"Discovered {len(discovered_features)} feature(s)")
+            print_phase_complete("Feature Identification", f"Identified {len(discovered_features)} feature(s)")
             return True, discovered_features
 
         # Conversation loop
@@ -894,7 +894,7 @@ Remember: Focus on BREADTH (many features) not DEPTH (detailed requirements). De
 
                 # Check if phase is complete
                 if phase_complete:
-                    print_phase_complete("Feature Discovery", f"Discovered {len(discovered_features)} feature(s)")
+                    print_phase_complete("Feature Identification", f"Identified {len(discovered_features)} feature(s)")
                     return True, discovered_features
 
             except KeyboardInterrupt:
@@ -928,9 +928,9 @@ async def get_user_action_choice(features_directory: str, future_features_direct
     console.print()
     console.print("[agent]How would you like to proceed?[/agent]")
     console.print()
-    console.print("  [bold]1.[/bold] Discover application features (create multiple feature stubs)")
-    console.print("  [bold]2.[/bold] Define a new feature")
-    console.print("  [bold]3.[/bold] Expand on an existing future-feature stub")
+    console.print("  [bold]1.[/bold] Identify application features (create multiple feature stubs)")
+    console.print("  [bold]2.[/bold] Discover a new feature")
+    console.print("  [bold]3.[/bold] Discover an existing future-feature stub")
     console.print("  [bold]4.[/bold] Continue with an existing feature")
     console.print("  [bold]5.[/bold] Exit")
     console.print()
@@ -1144,7 +1144,7 @@ def determine_resume_phase(features_directory: str, feature_slug: str) -> int:
 
 
 async def run_phase_1(features_directory: str, existing_features_context: str, future_features_directory: str = "./future-features/", initial_feature_context: str = None) -> tuple[bool, list[str]]:
-    """Run Phase 1: Discovery.
+    """Run Feature Discovery: Deep dive into a single feature.
 
     Args:
         features_directory: Path to features directory from Phase 0
@@ -1158,7 +1158,7 @@ async def run_phase_1(features_directory: str, existing_features_context: str, f
             - captured_future_features: List of future feature file paths created
     """
     # Display phase header
-    print_phase_header("Discovery")
+    print_phase_header("Feature Discovery")
 
     # Track captured future features during this phase
     captured_future_features = []
@@ -1190,7 +1190,7 @@ Here's what we learned about existing features:
 The features are located in: {features_directory}
 Future features will be saved to: {future_features_directory}
 
-Now let's start Phase 1 (Discovery). The user has selected a future-feature stub to expand on.
+Now let's start Feature Discovery. The user has selected a future-feature stub to expand on.
 
 You are continuing a conversation from Phase 0, so DO NOT include greetings or re-introduce yourself.
 
@@ -1209,7 +1209,7 @@ Here's what we learned about existing features:
 The features are located in: {features_directory}
 Future features will be saved to: {future_features_directory}
 
-Now let's start Phase 1 (Discovery). You are continuing a conversation from Phase 0, so DO NOT include greetings or re-introduce yourself.
+Now let's start Feature Discovery. You are continuing a conversation from Phase 0, so DO NOT include greetings or re-introduce yourself.
 
 Please ask the user to describe the new feature they want to build, then ask clarifying questions to understand it deeply."""
 
@@ -1266,7 +1266,7 @@ Please ask the user to describe the new feature they want to build, then ask cla
             extra_info = None
             if captured_future_features:
                 extra_info = f"Captured {len(captured_future_features)} future feature(s) for later planning"
-            print_phase_complete("Discovery", extra_info)
+            print_phase_complete("Feature Discovery", extra_info)
             return True, captured_future_features
 
         # Conversation loop
@@ -1347,7 +1347,7 @@ Please ask the user to describe the new feature they want to build, then ask cla
                     extra_info = None
                     if captured_future_features:
                         extra_info = f"Captured {len(captured_future_features)} future feature(s) for later planning"
-                    print_phase_complete("Discovery", extra_info)
+                    print_phase_complete("Feature Discovery", extra_info)
                     return True, captured_future_features
 
             except KeyboardInterrupt:
@@ -1422,7 +1422,7 @@ async def run_phase_2(features_directory: str, existing_features_context: str, c
                 future_features_context += f"- {feature_path}\n"
 
         # Initial context for Phase 2
-        initial_prompt = f"""We've completed Phase 1 (Discovery).
+        initial_prompt = f"""We've completed Feature Discovery.
 
 The feature summary was saved to: {latest_feature_file}
 
@@ -1855,8 +1855,8 @@ async def run_all_phases():
 
         # Handle different action paths
         if action == "discover":
-            # Run Feature Discovery Phase to identify and create multiple feature stubs
-            discovery_success, discovered_features = await run_feature_discovery_phase(future_features_directory)
+            # Run Feature Identification to identify and create multiple feature stubs
+            discovery_success, discovered_features = await run_feature_identification_phase(future_features_directory)
 
             if not discovery_success:
                 continue  # Go back to action choice menu
@@ -1899,7 +1899,7 @@ async def run_all_phases():
 
         # Execute phases based on resume_phase
         if resume_phase <= 1:
-            # Phase 1: Discovery
+            # Feature Discovery
             phase_1_success, captured_future_features = await run_phase_1(
                 features_directory,
                 existing_features_context,
