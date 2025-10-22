@@ -8,11 +8,8 @@ Prompt Toolkit integration for enhanced input handling.
 from rich.console import Console
 from rich.panel import Panel
 from rich.markdown import Markdown
-from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.theme import Theme
-from rich.markdown import Markdown as RichMarkdown
 from rich.text import Text
-from rich.columns import Columns
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.styles import Style as PromptStyle
@@ -39,7 +36,6 @@ console = Console(theme=custom_theme)
 
 # Import Markdown internals
 from rich.markdown import Heading as RichHeading
-from rich.text import Text as RichText
 
 # Custom Heading class that uses left justification
 class LeftAlignedHeading(RichHeading):
