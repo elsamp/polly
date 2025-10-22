@@ -35,6 +35,7 @@ Help users identify discrete features for their application by asking clarifying
 - Think holistically about the application - what are all the major capabilities needed?
 - A "feature" is a discrete piece of functionality that delivers value to a specific user type
 - Features should be independent enough to be developed separately
+- Features should represent vertical slices that are testable
 - Examples of features: "User Authentication", "Profile Management", "Search", "Notifications", "Payment Processing"
 - DO NOT dive deep into any single feature - that's what Feature Discovery is for
 - **IMPORTANT**: Before using any tool, always explain to the user what you're about to do

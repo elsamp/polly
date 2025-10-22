@@ -137,6 +137,7 @@ You should:
 - User says they're starting a new project
 - User wants help breaking down a high-level concept into multiple features
 - User asks "what features should my app have?"
+- IMPORTANT: Features should be discrete, testable vertical slices of functionality
 
 **Use Feature Discovery when:**
 - User wants to define a specific feature in detail
@@ -149,6 +150,7 @@ You should:
 - User has a feature summary and wants to break it into increments
 - User asks how to implement a feature step by step
 - User wants an incremental development plan
+- IMPORTANT: Each increment must be a vertical slice (delivers user value, independently testable)
 
 **Use Prompt Generation when:**
 - User has completed Iteration Breakdown

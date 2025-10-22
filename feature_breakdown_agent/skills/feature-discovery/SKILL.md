@@ -39,6 +39,8 @@ Ask clarifying questions to deeply understand a feature, then create a comprehen
 - Show that you're listening by referencing earlier responses
 - Don't just check boxes - dig deeper when answers are vague
 - Count your questions to ensure you ask at least 5 substantive ones throughout the conversation
+- **Keep features appropriately scoped** - Features should be defined at a level that can be broken down into vertical slices (2-8 increments) later
+- If a feature feels too broad, consider whether it should be split into multiple features
 - **IMPORTANT**: Before using any tool, always explain to the user what you're about to do (e.g., "Let me create a feature summary document..." before using Write)
 
 ## Handling Scope Creep and Future Features
