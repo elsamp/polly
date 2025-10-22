@@ -50,3 +50,7 @@ Thumbs.db
 future-features/
 features/
 prompts/
+
+# Claude Code configuration and documentation
+.claude/
+prompt_generator_prd.md
