@@ -88,17 +88,20 @@ feature-breakdown-agent/
 │   ├── feature_breakdown_agent.py   # Main application entry (~240 lines)
 │   ├── coordinator_prompt.py        # Main coordinator system prompt
 │   ├── display.py                   # Rich-based terminal UI
-│   ├── skills/                      # Claude Skills directory
-│   │   ├── feature-identification/
-│   │   │   └── SKILL.md
-│   │   ├── feature-discovery/
-│   │   │   └── SKILL.md
-│   │   ├── iteration-breakdown/
-│   │   │   └── SKILL.md
-│   │   └── prompt-generation/
-│   │       └── SKILL.md
-│   ├── prompt_template.py           # DEPRECATED (kept for reference)
-│   └── future_feature_template.py   # DEPRECATED (kept for reference)
+│   └── skills/                      # Claude Skills directory
+│       ├── feature-identification/
+│       │   ├── SKILL.md
+│       │   └── future-feature-template.md
+│       ├── feature-discovery/
+│       │   ├── SKILL.md
+│       │   ├── feature-template.md
+│       │   └── future-feature-template.md
+│       ├── iteration-breakdown/
+│       │   ├── SKILL.md
+│       │   └── increments-template.md
+│       └── prompt-generation/
+│           ├── SKILL.md
+│           └── prompt-template.md
 ├── tests/                           # Unit tests
 ├── CLAUDE.md                        # This file
 ├── pyproject.toml                   # uv/pip project configuration
