@@ -6,10 +6,10 @@ A conversational AI agent that transforms high-level feature descriptions into d
 
 Polly helps product managers, technical leads, and developers break down complex features into implementable vertical slices through an intelligent, conversational workflow powered by Claude Skills:
 
-• **Feature Identification** - Break down high-level application descriptions into discrete features
-• **Feature Discovery** - Deep dive into a single feature with interactive Q&A
-• **Iteration Breakdown** - Split features into 2-8 vertical slices with clear user value
-• **Prompt Generation** - Generate detailed, ready-to-implement coding prompts
+- **Feature Identification** - Break down high-level application descriptions into discrete features
+- **Feature Discovery** - Deep dive into a single feature with interactive Q&A
+- **Iteration Breakdown** - Split features into 2-8 vertical slices with clear user value
+- **Prompt Generation** - Generate detailed, ready-to-implement coding prompts
 
 ## Key Features
 
