@@ -99,6 +99,42 @@ cd /path/to/any-project
 uv run polly
 ```
 
+## Authentication
+
+Polly uses the Claude Agent SDK, which supports two authentication methods:
+
+### Option 1: Automatic (Recommended for Claude Pro Users)
+
+If you have **Claude Code** installed and authenticated, Polly will automatically use your existing credentials. No additional setup required!
+
+**Have Claude Pro but not Claude Code?**
+- Install [Claude Code](https://claude.ai/code) (free to install)
+- Authenticate with your Claude Pro account
+- Polly will work automatically!
+
+This is the easiest option and leverages your existing Claude subscription.
+
+### Option 2: API Key (For Non-Claude Pro Users)
+
+If you don't have a Claude Pro subscription or prefer not to install Claude Code, you'll need to set up an Anthropic API key:
+
+1. **Get an API key:**
+   - Sign up at [console.anthropic.com](https://console.anthropic.com/)
+   - Navigate to API Keys and create a new key
+   - Note: This requires a separate Anthropic API billing account (different from Claude Pro)
+
+2. **Set the environment variable:**
+   ```bash
+   export ANTHROPIC_API_KEY="your-api-key-here"
+   ```
+
+3. **Make it permanent (optional):**
+   Add to your shell profile (`~/.zshrc`, `~/.bashrc`, etc.):
+   ```bash
+   echo 'export ANTHROPIC_API_KEY="your-api-key-here"' >> ~/.zshrc
+   source ~/.zshrc
+   ```
+
 ## Usage
 
 ### Basic Usage
